@@ -139,13 +139,51 @@ function readinessScore(){
   return Math.round(lecture*.3+study*.2+r1*.15+r2*.15+r3*.1+questions*.1)
 }
 
-function planner(){
-  const backlog=backlogItems(),weak=weakTopics(),remaining=lectureItems().reduce((n,i)=>n+Number(i.duration||0)*(1-Number(i.progress||0)/100),0),target=state.settings.lectureTarget,days=target?Math.max(1,daysUntil(target)+1):0;
-  document.getElementById("content").innerHTML='<div class="grid stats">'+stat("Readiness",readinessScore()+"%","Overall exam preparation")+stat("Backlog",backlog.length,"Overdue items")+stat("Weak topics",weak.length,"Below 70% practice")+stat("Remaining lectures",duration(remaining),"At current progress")+'</div>'+
-  '<div class="grid two"><div class="card pad"><div class="section compact"><div><h2>Automatic backlog</h2><p>Anything planned but unfinished is shown here.</p></div></div>'+(backlog.length?'<div class="list">'+backlog.map(i=>'<div class="item"><div><b>'+esc(i.title)+'</b><small>'+esc(subject(i.subject)?.code||i.subject)+' • '+i.reason+'</small></div><button class="ghost" onclick="editItem(\''+i.id+'\')">Open</button></div>').join("")+'</div>':'<div class="empty">No overdue work.</div>')+'</div>'+
-  '<div class="card pad"><div class="section compact"><div><h2>Weak topics</h2><p>Question accuracy below 70%.</p></div></div>'+(weak.length?'<div class="list">'+weak.slice(0,10).map(i=>'<div class="item"><div><b>'+esc(i.title)+'</b><small>'+esc(subject(i.subject)?.code||i.subject)+' • '+i.score+'% practice</small></div></div>').join("")+'</div>':'<div class="empty">Add question scores to detect weak topics.</div>')+'</div></div>'+
-  '<div class="card pad"><h2>Targets</h2><div class="mapping">'+targetField("Lecture completion","lectureTarget")+targetField("Revision 1","r1Target")+targetField("Revision 2","r2Target")+targetField("Revision 3","r3Target")+'</div><div class="actions"><button class="primary" onclick="saveTargets()">Save targets</button></div><p class="muted">'+(days?duration(remaining/days)+" lecture time/day needed until "+fmtDate(target):"Set a lecture completion date to calculate your daily lecture load.")+'</p></div>'
+function dueRevisionItems(){
+  const todayStr=iso(today()),out=[];
+  state.items.forEach(i=>{
+    if(!i.completedAt)return;
+    ["r1","r2","r3"].forEach(r=>{
+      if(Number(i.rev?.[r]||0)>=100)return;
+      const base=new Date(i.completedAt+"T00:00:00"),days=r==="r1"?7:r==="r2"?30:60;
+      base.setDate(base.getDate()+days);
+      if(iso(base)<=todayStr)out.push({item:i,revision:r,date:iso(base)});
+    });
+  });
+  return out.sort((a,b)=>a.date.localeCompare(b.date));
 }
+function smartPlan(){
+  const hours=Math.max(1,Number(state.settings.dailyHours||6)),budget=hours*3600;
+  let used=0,lectureTasks=[],revisionTasks=[],questionTasks=[];
+  const backlog=backlogItems(),due=dueRevisionItems();
+  const lecturePool=[...backlog.filter(i=>i.kind==="lecture"),...lectureItems().filter(i=>Number(i.progress)<100&&!backlog.some(b=>b.id===i.id))]
+    .sort((a,b)=>Number(a.progress||0)-Number(b.progress||0));
+  for(const i of lecturePool){
+    const remaining=Math.max(0,Number(i.duration||0)*(1-Number(i.progress||0)/100));
+    if(!remaining)continue;
+    if(used+remaining<=budget || lectureTasks.length===0){lectureTasks.push({item:i,minutes:Math.max(15,Math.round(remaining/60))});used+=remaining}
+    if(used>=budget*.65)break;
+  }
+  for(const x of due.slice(0,3)){if(used+1800<=budget){revisionTasks.push(x);used+=1800}}
+  for(const i of weakTopics().slice(0,5)){if(used+1800<=budget){questionTasks.push(i);used+=1800}}
+  return {hours,used,remaining:Math.max(0,budget-used),lectureTasks,revisionTasks,questionTasks};
+}
+function planner(){
+  const plan=smartPlan(),backlog=backlogItems(),due=dueRevisionItems();
+  const target=state.settings.lectureTarget,days=target?Math.max(1,daysUntil(target)+1):null;
+  const lectureRemaining=lectureItems().reduce((n,i)=>n+Number(i.duration||0)*(1-Number(i.progress||0)/100),0);
+  const taskCard=(title,sub,body)=>'<div class="plan-section"><div class="plan-title"><div><h3>'+title+'</h3><span class="muted">'+sub+'</span></div></div>'+body+'</div>';
+  const lectures=plan.lectureTasks.length?'<div class="list">'+plan.lectureTasks.map(x=>'<div class="item"><div><b>'+esc(subject(x.item.subject)?.code||x.item.subject)+' • '+esc(x.item.title)+'</b><small>'+x.minutes+' min'+(backlog.some(b=>b.id===x.item.id)?' • backlog':'')+'</small></div><button class="ghost" onclick="editItem(\''+x.item.id+'\')">Open</button></div>').join("")+'</div>':'<div class="empty">No lecture work fits today. Use the time for questions or revision.</div>';
+  const revs=plan.revisionTasks.length?'<div class="list">'+plan.revisionTasks.map(x=>'<div class="item"><div><b>'+esc(subject(x.item.subject)?.code||x.item.subject)+' • '+esc(x.item.title)+'</b><small>'+x.revision.toUpperCase()+' due '+fmtDate(x.date)+'</small></div><button class="ghost" onclick="setView(\'revisions\')">Revise</button></div>').join("")+'</div>':'<div class="empty">No revision is due today.</div>';
+  const qs=plan.questionTasks.length?'<div class="list">'+plan.questionTasks.map(x=>'<div class="item"><div><b>'+esc(subject(x.subject)?.code||x.subject)+' • '+esc(x.title)+'</b><small>30 min question practice • current '+x.score+'%</small></div><button class="ghost" onclick="editItemByTitle(\''+esc(x.title).replace(/'/g,"\\'")+'\')">Open</button></div>').join("")+'</div>':'<div class="empty">No weak-topic question work available yet.</div>';
+  document.getElementById("content").innerHTML='<div class="hero"><div><span class="eyebrow">TODAY\'S PLAN</span><h2>'+plan.hours+' hours planned</h2><p class="muted">Priority: backlog → due revisions → unfinished lectures → weak topics.</p></div><div class="examcount"><b>'+readinessScore()+'%</b><span>readiness</span></div></div>'+
+  '<div class="grid stats">'+stat("Planned",Math.round(plan.used/3600*10)/10+"h","of "+plan.hours+"h available")+stat("Lectures",plan.lectureTasks.length,"Today")+stat("Revisions",plan.revisionTasks.length,"Due")+stat("Questions",plan.questionTasks.length,"Weak topics")+'</div>'+
+  '<div class="grid two">'+taskCard("1. Lectures","Highest priority unfinished work",lectures)+taskCard("2. Revisions",due.length+" revision(s) currently due",revs)+'</div>'+
+  '<div class="grid two">'+taskCard("3. Questions","Practice your weakest areas",qs)+taskCard("Backlog",backlog.length+" overdue item(s)",backlog.length?'<div class="list">'+backlog.slice(0,8).map(i=>'<div class="item"><div><b>'+esc(subject(i.subject)?.code||i.subject)+' • '+esc(i.title)+'</b><small>'+i.reason+'</small></div><button class="ghost" onclick="editItem(\''+i.id+'\')">Open</button></div>').join("")+'</div>':'<div class="empty">No overdue work.</div>')+'</div>'+
+  '<div class="card pad"><h3>Long-term pace</h3><p class="muted">'+(days?'You need about <b>'+duration(lectureRemaining/days)+'</b> of lecture time per day to reach '+fmtDate(target)+'.':'Set a lecture completion target to calculate your daily pace.')+'</p></div>';
+}
+function editItemByTitle(title){const i=state.items.find(x=>x.title===title);if(i)editItem(i.id)}
+
 function targetField(label,key){return '<div class="field"><label>'+label+'</label><input id="target-'+key+'" type="date" class="input" value="'+esc(state.settings[key]||"")+'"></div>'}
 function saveTargets(){["lectureTarget","r1Target","r2Target","r3Target"].forEach(k=>state.settings[k]=document.getElementById("target-"+k).value);save();toast("Targets saved");render()}
 
