@@ -48,11 +48,11 @@ function render(){
 }
 
 function applyFRExcelCompletion(){
-  if(localStorage.getItem("fr-excel-completion-v2")==="1")return;
-  state.items.forEach(i=>{if(i.subject!=="FR"||i.kind!=="lecture")return;const t=String(i.title||"").trim(),m=t.match(/(?:^|\s)(\d{1,3})_(\d{1,2}[a-z]?)(?:_|\s|$)/);let done=false;if(m){const d=Number(m[1]);done=d<89||(d===89&&/^1/.test(m[2]))}const n=t.toLowerCase().replace(/\s+/g," ");if(/ind as 102_sbp|sbp_ind as 102|rtp may 2024 question 11|uniform acc\. policies_ca inter|extra que_ q 49|extra que_ q 50/.test(n))done=true;if(done)i.progress=100});localStorage.setItem("fr-excel-completion-v2","1");save()
+  const lectureRows=state.items.filter(i=>i.subject==="FR"&&i.kind==="lecture");
+  if(!lectureRows.length)return;
+  lectureRows.forEach(i=>{const t=String(i.title||"").trim(),m=t.match(/(?:^|\\s)(\\d{1,3})_(\\d{1,2}[a-z]?)(?:_|\\s|$)/);let done=false;if(m){const d=Number(m[1]);done=d<89||(d===89&&/^1/.test(m[2]))}const n=t.toLowerCase().replace(/\\s+/g," ");if(/ind as 102_sbp|sbp_ind as 102|rtp may 2024 question 11|uniform acc\\. policies_ca inter|extra que_ q 49|extra que_ q 50/.test(n))done=true;if(done)i.progress=100});
 }
 function applyAFMExcelCompletion(){
-  if(localStorage.getItem("afm-excel-completion-v1")==="1")return;
   const titles=["1_1_Valuation of Securities","1_2_Valuation of Securities","2_1_Valuation of Securities","2_2_Valuation of Securities","3_1_Valuation of Securities","3_2_Valuation of Securities","4_1_Valuation of Securities","4_2_Valuation of Securities","5_1_Valuation of Securities","5_2_Valuation of Securities","6_1_Valuation of Securities","6_2_Valuation of Securities","7_1_Valuation of Securities","7_2_Valuation of Securities","8_1_Valuation of Securities","9_1_Valuation of Securities","9_2_Valuation of Securities","10_1_Valuation of Securities","10_2_Valuation of Securities","11_1_Valuation of Securities","11_2_Valuation of Securities","12_1_Valuation of Securities","13_1_Valuation of Securities","13_2_Valuation of Securities","14_1_Mergers","14_2_Mergers","15_1_Mergers","15_2_Mergers","16_1_Mergers","16_2_Mergers","17_1_Mergers","17_2_Mergers","18_1_Mergers","18_2_Mergers","19_1_Mergers","19_2_Mergers","20_1_Mergers","20_2_Mergers","21_1_Mergers","21_2_Mergers","22_1_Posrtfolio Management","22_2_Posrtfolio Management","23_1_Portfolio Management","23_2_Portfolio Management","24_1_Portfolio Management","24_2_Portfolio Management","25_1_Portfolio Management","25_2_Portfolio Management","26_1_Portfolio Management","26_2_Portfolio Management","27_1_Portfolio Management","27_2_Portfolio Management","28_1_Portfolio Management","28_2_Portfolio Management","29_1_Portfolio Management","30_1_Portfolio Management","30_2_Portfolio Management","31_1_Mutual Fund","32_0_Mutual Fund","32_1_Mutual Fund","32_2_Mutual Fund","32_3_Mutual Fund","33_1_Mutual Fund","33_2_Mutual Fund","34_1_Risk Management","34_2_Business Valuation","37_1_Adv Capital Budgeting","37_2_Adv Capital Budgeting","38_1_Adv Capital Budgeting","38_2_Adv Capital Budgeting","39_1_Adv Capital Budgeting","39_2_Adv Capital Budgeting","40_1_Adv Capital Budgeting","40_2_Adv Capital Budgeting","41_1_Adv Capital Budgeting","41_2_Forex","42_1_Forex","42_2_Forex","43_1_Forex","44_1_Forex","44_2_Forex","45_1_Forex","45_2_Forex","46_1_Forex","46_2_Forex","47_1_Forex","47_2_Forex","48_1_Forex","48_2_Forex","49_1_Forex","49_2_Forex","50_1_Forex","50_2_Forex","51_1_Forex","51_2_Forex","52_1_Forex","52_2_Forex","53_1_Forex","53_2_Forex","54_1_Forex","54_2_Forex","55_1_International Financial Management","55_2_International Financial Management","56_1_International Financial Management","56_2_International Financial Management","57_1_International Financial Management","57_2_International Financial Management","58_1_International Financial Management","58_2_International Financial Management","59_1_Derivatives","60_1_Derivatives","60_2_Derivatives","61_1_Derivatives","61_2_Derivatives","62_1_Derivatives","63_1_Derivatives","63_2_Derivatives","65_1_Derivatives","65_2_Derivatives","66_1_Derivatives","66_2_Derivatives","67_1_Derivatives","67_2_Derivatives","68_2_Derivatives"];
   const wanted=new Set(titles.map(normText));state.items.forEach(i=>{if(i.subject==="AFM"&&i.kind==="lecture"&&wanted.has(normText(i.title)))i.progress=100});titles.forEach((t,n)=>{if(!state.items.some(i=>i.subject==="AFM"&&i.kind==="lecture"&&normText(i.title)===normText(t))){const m=t.match(/^(\d+)_(\d+[a-z]?)/);state.items.push({id:"afm-sync-"+n,subject:"AFM",kind:"lecture",no:m?m[1]:"",title:t,chapter:"",duration:0,progress:100,rev:{r1:0,r2:0,r3:0}})}});localStorage.setItem("afm-excel-completion-v1","1");save()
 }
@@ -259,5 +259,25 @@ function excelDuration(v){if(v===null||v===undefined||v==="")return 0;if(typeof 
 function exportData(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}));a.download="CA-Final-Nov-2027-Study-Tracker.json";a.click()}
 function bind(){document.querySelectorAll(".nav").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));const q=document.getElementById("quick");if(q)q.onclick=()=>quickAdd();const backup=document.getElementById("backup");if(backup)backup.onclick=exportData)}
 window.itemModal=itemModal;window.toggleLecture=toggleLecture;window.editItem=editItem;window.resourceModal=resourceModal;window.toggleRev=toggleRev;window.openSubject=openSubject;window.completionSync=completionSync;window.exportData=exportData;window.openLog=openLog;window.setView=setView;window.quickAdd=quickAdd;window.saveTargets=saveTargets;window.editItemByTitle=editItemByTitle;
-applyFRExcelCompletion();applyAFMExcelCompletion();bind();render();
-fetch("data/fr.json").then(r=>r.ok?r.json():[]).then(fr=>{if(state.items.length===0)return Promise.all([Promise.resolve(fr),fetch("data/afm.json").then(r=>r.ok?r.json():[]),fetch("data/audit.json").then(r=>r.ok?r.json():[])]);return null}).then(all=>{if(!all)return;state.items=all.flat().map((r,i)=>({id:"pre-"+i,subject:r.subject,kind:"lecture",no:r.lectureNo,title:r.title,day:r.day||"",chapter:r.day||r.category||"",duration:Number(r.duration||0),category:r.category||"",concepts:r.raw||"",progress:0,questionPct:0,notesPct:0,rev:{r1:0,r2:0,r3:0}}));save();applyFRExcelCompletion();applyAFMExcelCompletion();render()}).catch(e=>console.warn("Lecture preload skipped",e));
+bind();render();
+async function preloadLectureData(){
+  try{
+    const [fr,afm,audit]=await Promise.all([
+      fetch("data/fr.json").then(r=>r.ok?r.json():[]),
+      fetch("data/afm.json").then(r=>r.ok?r.json():[]),
+      fetch("data/audit.json").then(r=>r.ok?r.json():[])
+    ]);
+    const source=[...fr,...afm,...audit];
+    if(!source.length)return;
+    const lectureSubjects=new Set(["FR","AFM","AUD"]);
+    const existing=state.items.filter(i=>!lectureSubjects.has(i.subject)||i.kind!=="lecture");
+    const oldLectures=state.items.filter(i=>lectureSubjects.has(i.subject)&&i.kind==="lecture");
+    const merged=source.map((r,idx)=>{
+      const match=oldLectures.find(i=>(r.lectureNo&&String(i.no||"")===String(r.lectureNo))&&i.subject===r.subject) || oldLectures.find(i=>i.subject===r.subject&&normText(i.title)===normText(r.title));
+      return {id:match?.id||"pre-"+r.subject+"-"+idx,subject:r.subject,kind:"lecture",no:r.lectureNo,title:r.title,day:r.day||"",chapter:r.day||r.category||"",duration:Number(r.duration||0),category:r.category||"",concepts:r.raw||"",progress:Number(match?.progress||0),questionPct:Number(match?.questionPct||0),notesPct:Number(match?.notesPct||0),completedAt:match?.completedAt||"",plannedDate:match?.plannedDate||"",dueDate:match?.dueDate||"",rev:{r1:0,r2:0,r3:0,...(match?.rev||{})}};
+    });
+    state.items=[...existing,...merged];
+    applyFRExcelCompletion();applyAFMExcelCompletion();save();render();
+  }catch(e){console.warn("Lecture preload skipped",e)}
+}
+preloadLectureData();
