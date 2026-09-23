@@ -125,9 +125,9 @@ function attentionHtml(){
   return out||'<div class="empty">Nothing urgent. Keep going.</div>'
 }
 function backlogItems(){
-  const out=[],today=iso(today());
-  state.items.forEach(i=>{if(i.kind==="lecture"&&Number(i.progress)<100&&i.plannedDate&&i.plannedDate<today)out.push({...i,reason:"planned date passed"})});
-  state.items.forEach(i=>{if(i.kind!=="lecture"&&Number(i.progress)<100&&i.dueDate&&i.dueDate<today)out.push({...i,reason:"due date passed"})});
+  const out=[],todayStr=iso(today());
+  state.items.forEach(i=>{if(i.kind==="lecture"&&Number(i.progress)<100&&i.plannedDate&&i.plannedDate<todayStr)out.push({...i,reason:"planned date passed"})});
+  state.items.forEach(i=>{if(i.kind!=="lecture"&&Number(i.progress)<100&&i.dueDate&&i.dueDate<todayStr)out.push({...i,reason:"due date passed"})});
   return out
 }
 function weakTopics(){return state.items.filter(i=>Number(i.questionPct||0)>0&&Number(i.questionPct||0)<70).sort((a,b)=>Number(a.questionPct)-Number(b.questionPct)).map(i=>({title:i.title,subject:i.subject,score:Number(i.questionPct||0)}))}
