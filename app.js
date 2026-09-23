@@ -57,6 +57,23 @@ function applyAFMExcelCompletion(){
   if(changed||added)save();
   return changed+added;
 }
+function applyFRExcelCompletion(){
+  if(localStorage.getItem("fr-excel-completion-v2")==="1")return 0;
+  let changed=0;
+  state.items.forEach(i=>{
+    if(i.subject!=="FR"||i.kind!=="lecture")return;
+    const t=String(i.title||"").trim();
+    const m=t.match(/(?:^|\s)(\d{1,3})_(\d{1,2}[a-z]?)(?:_|\s|$)/);
+    let done=false;
+    if(m){const day=Number(m[1]);done=day<89||(day===89&&/^1/.test(m[2]));}
+    const n=t.toLowerCase().replace(/\s+/g," ");
+    if(n.includes("ind as 102_sbp")||n.includes("sbp_ind as 102")||n.includes("rtp may 2024 question 11")||n.includes("uniform acc. policies_ca inter")||n.includes("extra que_ q 49")||n.includes("extra que_ q 50"))done=true;
+    if(done&&Number(i.progress||0)<100){i.progress=100;changed++}
+  });
+  localStorage.setItem("fr-excel-completion-v2","1");
+  if(changed)save();
+  return changed;
+}
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function subject(id){return state.subjects.find(s=>s.id===id)}
