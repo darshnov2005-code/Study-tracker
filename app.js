@@ -200,6 +200,7 @@ async function syncExcel(file,m,subjectId){
     };
   }catch(e){console.error(e);m.querySelector("#syncMsg").innerHTML='<p>Could not read the file: '+esc(e.message)+'</p>'}
 }
+function toggleLecture(id,yes){const i=state.items.find(x=>x.id===id);if(!i)return;i.progress=yes?100:0;save();lectures();toast(yes?"Lecture marked complete":"Lecture marked incomplete")}
 function exportData(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}));a.download="CA-Final-Nov-2027-Study-Tracker.json";a.click()}
 function resetTracker(){localStorage.removeItem(KEY);localStorage.removeItem("ca-final-study-tracker-v2");location.reload()}
 
