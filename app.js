@@ -257,7 +257,7 @@ async function syncExcel(file,m,subjectId){
 function excelDuration(v){if(v===null||v===undefined||v==="")return 0;if(typeof v==="number")return v>0&&v<1?v*86400:v;return seconds(v)}
 
 function exportData(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}));a.download="CA-Final-Nov-2027-Study-Tracker.json";a.click()}
-function bind(){document.querySelectorAll(".nav").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));const q=document.getElementById("quick");if(q)q.onclick=()=>quickAdd();const backup=document.getElementById("backup");if(backup)backup.onclick=exportData)}
+function bind(){document.querySelectorAll(".nav").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));const q=document.getElementById("quick");if(q)q.onclick=()=>quickAdd();const backup=document.getElementById("backup");if(backup)backup.onclick=exportData}
 window.itemModal=itemModal;window.toggleLecture=toggleLecture;window.editItem=editItem;window.resourceModal=resourceModal;window.toggleRev=toggleRev;window.openSubject=openSubject;window.completionSync=completionSync;window.exportData=exportData;window.openLog=openLog;window.setView=setView;window.quickAdd=quickAdd;window.saveTargets=saveTargets;window.editItemByTitle=editItemByTitle;
 bind();render();
 async function preloadLectureData(){
