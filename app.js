@@ -1,78 +1,28 @@
-const KEY="ca-final-study-tracker-v3";
+const KEY="ca-final-study-tracker-v4";
 const BASE={
-  settings:{attempt:"November 2027",examDate:"",lectureTarget:"",r1Target:"",r2Target:"",r3Target:""},
+  settings:{attempt:"November 2027",examDate:"2027-11-01",lectureTarget:"",r1Target:"",r2Target:"",r3Target:"",dailyHours:6},
   subjects:[
-    {id:"FR",code:"FR",name:"Financial Reporting",mode:"lecture",desc:"Batch 9 lectures + 3 revisions"},
-    {id:"AFM",code:"AFM",name:"Advanced Financial Management",mode:"lecture",desc:"Regular Batch 9 lectures + 3 revisions"},
-    {id:"AUD",code:"AUD",name:"Audit",mode:"lecture",desc:"Lectures + Fast Track where specified"},
-    {id:"DT",code:"DT",name:"Direct Tax",mode:"self",desc:"Self-study for now; lectures can be added later"},
-    {id:"IDT",code:"IDT",name:"Indirect Tax",mode:"self",desc:"Self-study for now; lectures can be added later"},
+    {id:"FR",code:"FR",name:"Financial Reporting",mode:"lecture",desc:"Lecture based"},
+    {id:"AFM",code:"AFM",name:"Advanced Financial Management",mode:"lecture",desc:"Lecture based"},
+    {id:"AUD",code:"AUD",name:"Audit",mode:"lecture",desc:"Lectures + Fast Track"},
+    {id:"DT",code:"DT",name:"Direct Tax",mode:"self",desc:"Self-study now • lectures can be added later"},
+    {id:"IDT",code:"IDT",name:"Indirect Tax",mode:"self",desc:"Self-study now • lectures can be added later"},
     {id:"IBS",code:"IBS",name:"Integrated Business Solutions",mode:"self",desc:"Self-study / case-study based"}
   ],
-  items:[],resources:[]
+  items:[],resources:[],studyLog:[],plans:[]
 };
-
-let state=loadState(), view="dashboard", filter="ALL";
+let state=loadState(),view="dashboard",filter="ALL";
 
 function clone(x){return JSON.parse(JSON.stringify(x))}
-function loadState(){
-  try{
-    const raw=localStorage.getItem(KEY)||localStorage.getItem("ca-final-study-tracker-v2");
-    if(!raw)return clone(BASE);
-    const s=JSON.parse(raw);
-    return normalize(s);
-  }catch(e){console.warn(e);return clone(BASE)}
-}
+function loadState(){try{const raw=localStorage.getItem(KEY)||localStorage.getItem("ca-final-study-tracker-v3")||localStorage.getItem("ca-final-study-tracker-v2");return raw?normalize(JSON.parse(raw)):clone(BASE)}catch(e){return clone(BASE)}}
 function normalize(s){
   s=s&&typeof s==="object"?s:clone(BASE);
   s.settings={...clone(BASE.settings),...(s.settings||{})};
   s.subjects=Array.isArray(s.subjects)&&s.subjects.length?s.subjects:clone(BASE.subjects);
-  s.items=Array.isArray(s.items)?s.items:[];
-  s.resources=Array.isArray(s.resources)?s.resources:[];
-  s.items=s.items.map((x,i)=>({...x,id:x.id||("item-"+i),rev:{r1:0,r2:0,r3:0},...x,rev:{r1:0,r2:0,r3:0,...(x.rev||{})}}));
+  s.items=Array.isArray(s.items)?s.items:[];s.resources=Array.isArray(s.resources)?s.resources:[];
+  s.studyLog=Array.isArray(s.studyLog)?s.studyLog:[];s.plans=Array.isArray(s.plans)?s.plans:[];
+  s.items=s.items.map((x,i)=>({...x,id:x.id||"item-"+i,rev:{r1:0,r2:0,r3:0},...x,rev:{r1:0,r2:0,r3:0,...(x.rev||{})}}));
   return s;
-}
-function applyAFMExcelCompletion(){
-  // Imported from the user's AFM workbook: column F is the Done field.
-  // v1 uses the exact lecture titles marked Done in that workbook.
-  if(localStorage.getItem("afm-excel-completion-v1")==="1")return 0;
-  const doneTitles=["1_1_Valuation of Securities","1_2_Valuation of Securities","2_1_Valuation of Securities","2_2_Valuation of Securities","3_1_Valuation of Securities","3_2_Valuation of Securities","4_1_Valuation of Securities","4_2_Valuation of Securities","5_1_Valuation of Securities","5_2_Valuation of Securities","6_1_Valuation of Securities","6_2_Valuation of Securities","7_1_Valuation of Securities","7_2_Valuation of Securities","8_1_Valuation of Securities","9_1_Valuation of Securities","9_2_Valuation of Securities","10_1_Valuation of Securities","10_2_Valuation of Securities","11_1_Valuation of Securities","11_2_Valuation of Securities","12_1_Valuation of Securities","13_1_Valuation of Securities","13_2_Valuation of Securities","14_1_Mergers","14_2_Mergers","15_1_Mergers","15_2_Mergers","16_1_Mergers","16_2_Mergers","17_1_Mergers","17_2_Mergers","18_1_Mergers","18_2_Mergers","19_1_Mergers","19_2_Mergers","20_1_Mergers","20_2_Mergers","21_1_Mergers","21_2_Mergers","22_1_Posrtfolio Management","22_2_Posrtfolio Management","23_1_Portfolio Management","23_2_Portfolio Management","24_1_Portfolio Management","24_2_Portfolio Management","25_1_Portfolio Management","25_2_Portfolio Management","26_1_Portfolio Management","26_2_Portfolio Management","27_1_Portfolio Management","27_2_Portfolio Management","28_1_Portfolio Management","28_2_Portfolio Management","29_1_Portfolio Management","30_1_Portfolio Management","30_2_Portfolio Management","31_1_Portfolio Management","31_2_Mutual Fund","32_0_Mutual Fund","32_1_Mutual Fund","32_2_Mutual Fund","32_3_Mutual Fund","33_1_Mutual Fund","33_2_Mutual Fund","34_1_Risk Management","34_2_Business Valuation","37_1_Adv Capital Budgeting","37_2_Adv Capital Budgeting","38_1_Adv Capital Budgeting","38_2_Adv Capital Budgeting","39_1_Adv Capital Budgeting","39_2_Adv Capital Budgeting","40_1_Adv Capital Budgeting","40_2_Adv Capital Budgeting","41_1_Adv Capital Budgeting","41_2_Forex","42_1_Forex","42_2_Forex","43_1_Forex","44_1_Forex","44_2_Forex","45_1_Forex","45_2_Forex","46_1_Forex","46_2_Forex","47_1_Forex","47_2_Forex","48_1_Forex","48_2_Forex","49_1_Forex","49_2_Forex","50_1_Forex","50_2_Forex","51_1_Forex","51_2_Forex","52_1_Forex","52_2_Forex","53_1_Forex","53_2_Forex","54_1_Forex","54_2_Forex","55_1_International Financial Management","55_2_International Financial Management","56_1_International Financial Management","56_2_International Financial Management","57_1_International Financial Management","57_2_International Financial Management","58_1_International Financial Management","58_2_International Financial Management","59_1_Derivatives","60_1_Derivatives","60_2_Derivatives","61_1_Derivatives","61_2_Derivatives","62_1_Derivatives","62_2_Derivatives","63_1_Derivatives","63_2_Derivatives","65_1_Derivatives","65_2_Derivatives","66_1_Derivatives","66_2_Derivatives","67_1_Derivatives","67_2_Derivatives","68_2_Derivatives"];
-  const norm=s=>String(s??"").replace(/[\\u00a0\\n\\r]+/g," ").replace(/\\s+/g," ").trim().toLowerCase();
-  const wanted=new Set(doneTitles.map(norm));
-  let changed=0,added=0;
-  state.items.forEach(i=>{
-    if(i.subject!=="AFM"||i.kind!=="lecture")return;
-    if(wanted.has(norm(i.title))&&Number(i.progress||0)<100){i.progress=100;changed++}
-  });
-  // Some rows marked Done in the Excel are not present in the preloaded AFM JSON.
-  // Add those completed rows so the website reflects the workbook rather than silently dropping them.
-  doneTitles.forEach((title,idx)=>{
-    const exists=state.items.some(i=>i.subject==="AFM"&&i.kind==="lecture"&&norm(i.title)===norm(title));
-    if(exists)return;
-    const m=title.match(/^(\\d+)_(\\d+[a-z]?)/i);
-    state.items.push({id:"afm-sync-"+idx,subject:"AFM",kind:"lecture",no:m?m[1]:"",title,chapter:"",day:"",duration:0,progress:100,rev:{r1:0,r2:0,r3:0}});
-    added++;
-  });
-  localStorage.setItem("afm-excel-completion-v1","1");
-  if(changed||added)save();
-  return changed+added;
-}
-function applyFRExcelCompletion(){
-  if(localStorage.getItem("fr-excel-completion-v2")==="1")return 0;
-  let changed=0;
-  state.items.forEach(i=>{
-    if(i.subject!=="FR"||i.kind!=="lecture")return;
-    const t=String(i.title||"").trim();
-    const m=t.match(/(?:^|\s)(\d{1,3})_(\d{1,2}[a-z]?)(?:_|\s|$)/);
-    let done=false;
-    if(m){const day=Number(m[1]);done=day<89||(day===89&&/^1/.test(m[2]));}
-    const n=t.toLowerCase().replace(/\s+/g," ");
-    if(n.includes("ind as 102_sbp")||n.includes("sbp_ind as 102")||n.includes("rtp may 2024 question 11")||n.includes("uniform acc. policies_ca inter")||n.includes("extra que_ q 49")||n.includes("extra que_ q 50"))done=true;
-    if(done&&Number(i.progress||0)<100){i.progress=100;changed++}
-  });
-  localStorage.setItem("fr-excel-completion-v2","1");
-  if(changed)save();
-  return changed;
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -81,267 +31,195 @@ function itemsFor(id){return state.items.filter(i=>i.subject===id)}
 function lectureItems(){return state.items.filter(i=>i.kind==="lecture")}
 function pct(a){return a.length?Math.round(a.reduce((n,i)=>n+Number(i.progress||0),0)/a.length):0}
 function revPct(r){const a=state.items.filter(i=>i.rev);return a.length?Math.round(a.reduce((n,i)=>n+Number(i.rev?.[r]||0),0)/a.length):0}
+function duration(v){const s=Number(v||0);if(!s)return "—";const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h?h+"h "+m+"m":m+"m"}
 function seconds(v){if(!v)return 0;const p=String(v).trim().split(":").map(Number);if(p.some(Number.isNaN))return 0;return p.length===3?p[0]*3600+p[1]*60+p[2]:p.length===2?p[0]*60+p[1]:Number(v)*60}
-function duration(s){s=Number(s||0);if(!s)return "—";const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h?h+"h "+m+"m":m+"m"}
-function toast(msg){const d=document.createElement("div");d.className="toast";d.textContent=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),1800)}
+function normText(v){return String(v??"").toLowerCase().replace(/[\u00a0]/g," ").replace(/[_-]+/g," ").replace(/\s+/g," ").trim()}
+function toast(msg){const d=document.createElement("div");d.className="toast";d.textContent=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),1900)}
+function today(){const d=new Date();d.setHours(0,0,0,0);return d}
+function iso(d){return new Date(d).toISOString().slice(0,10)}
+function daysUntil(date){if(!date)return null;return Math.ceil((new Date(date+"T00:00:00")-today())/86400000)}
+function fmtDate(v){if(!v)return "Not set";const d=new Date(v+"T00:00:00");return d.toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})}
+function modeFor(s){return s.mode==="lecture"||itemsFor(s.id).some(i=>i.kind==="lecture")}
 function setView(v){view=v;document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.view===v));render()}
-
 function render(){
-  const title=document.getElementById("title"),content=document.getElementById("content");
-  if(!title||!content)return;
-  title.textContent={dashboard:"Dashboard",subjects:"Subjects",lectures:"Lectures",revisions:"Revisions",resources:"Resources",import:"Import Centre",analytics:"Analytics",planner:"Planner",calendar:"Calendar",settings:"Settings"}[view]||"Dashboard";
-  try{
-    ({dashboard,subjects,lectures,revisions,resources,imports:imports,analytics,planner,calendar,settings}[view]||dashboard)();
-  }catch(e){
-    console.error("Render error",e);
-    content.innerHTML='<div class="card" style="padding:24px"><h2>This section could not load</h2><p class="muted">'+esc(e.message)+'</p><button class="primary" onclick="resetTracker()">Reset local tracker data</button></div>';
-  }
+  const title=document.getElementById("title"),content=document.getElementById("content");if(!title||!content)return;
+  title.textContent={dashboard:"Dashboard",study:"Study",subjects:"Subjects",revisions:"Revisions",resources:"Resources",planner:"Planner",settings:"Settings"}[view]||"Dashboard";
+  try{({dashboard,study,subjects,revisions,resources,planner,settings}[view]||dashboard)()}catch(e){console.error(e);content.innerHTML='<div class="card pad"><h2>Something went wrong</h2><p class="muted">'+esc(e.message)+'</p></div>'}
+}
+
+function applyFRExcelCompletion(){
+  if(localStorage.getItem("fr-excel-completion-v2")==="1")return;
+  state.items.forEach(i=>{if(i.subject!=="FR"||i.kind!=="lecture")return;const t=String(i.title||"").trim(),m=t.match(/(?:^|\s)(\d{1,3})_(\d{1,2}[a-z]?)(?:_|\s|$)/);let done=false;if(m){const d=Number(m[1]);done=d<89||(d===89&&/^1/.test(m[2]))}const n=t.toLowerCase().replace(/\s+/g," ");if(/ind as 102_sbp|sbp_ind as 102|rtp may 2024 question 11|uniform acc\. policies_ca inter|extra que_ q 49|extra que_ q 50/.test(n))done=true;if(done)i.progress=100});localStorage.setItem("fr-excel-completion-v2","1");save()
+}
+function applyAFMExcelCompletion(){
+  if(localStorage.getItem("afm-excel-completion-v1")==="1")return;
+  const titles=["1_1_Valuation of Securities","1_2_Valuation of Securities","2_1_Valuation of Securities","2_2_Valuation of Securities","3_1_Valuation of Securities","3_2_Valuation of Securities","4_1_Valuation of Securities","4_2_Valuation of Securities","5_1_Valuation of Securities","5_2_Valuation of Securities","6_1_Valuation of Securities","6_2_Valuation of Securities","7_1_Valuation of Securities","7_2_Valuation of Securities","8_1_Valuation of Securities","9_1_Valuation of Securities","9_2_Valuation of Securities","10_1_Valuation of Securities","10_2_Valuation of Securities","11_1_Valuation of Securities","11_2_Valuation of Securities","12_1_Valuation of Securities","13_1_Valuation of Securities","13_2_Valuation of Securities","14_1_Mergers","14_2_Mergers","15_1_Mergers","15_2_Mergers","16_1_Mergers","16_2_Mergers","17_1_Mergers","17_2_Mergers","18_1_Mergers","18_2_Mergers","19_1_Mergers","19_2_Mergers","20_1_Mergers","20_2_Mergers","21_1_Mergers","21_2_Mergers","22_1_Posrtfolio Management","22_2_Posrtfolio Management","23_1_Portfolio Management","23_2_Portfolio Management","24_1_Portfolio Management","24_2_Portfolio Management","25_1_Portfolio Management","25_2_Portfolio Management","26_1_Portfolio Management","26_2_Portfolio Management","27_1_Portfolio Management","27_2_Portfolio Management","28_1_Portfolio Management","28_2_Portfolio Management","29_1_Portfolio Management","30_1_Portfolio Management","30_2_Portfolio Management","31_1_Mutual Fund","32_0_Mutual Fund","32_1_Mutual Fund","32_2_Mutual Fund","32_3_Mutual Fund","33_1_Mutual Fund","33_2_Mutual Fund","34_1_Risk Management","34_2_Business Valuation","37_1_Adv Capital Budgeting","37_2_Adv Capital Budgeting","38_1_Adv Capital Budgeting","38_2_Adv Capital Budgeting","39_1_Adv Capital Budgeting","39_2_Adv Capital Budgeting","40_1_Adv Capital Budgeting","40_2_Adv Capital Budgeting","41_1_Adv Capital Budgeting","41_2_Forex","42_1_Forex","42_2_Forex","43_1_Forex","44_1_Forex","44_2_Forex","45_1_Forex","45_2_Forex","46_1_Forex","46_2_Forex","47_1_Forex","47_2_Forex","48_1_Forex","48_2_Forex","49_1_Forex","49_2_Forex","50_1_Forex","50_2_Forex","51_1_Forex","51_2_Forex","52_1_Forex","52_2_Forex","53_1_Forex","53_2_Forex","54_1_Forex","54_2_Forex","55_1_International Financial Management","55_2_International Financial Management","56_1_International Financial Management","56_2_International Financial Management","57_1_International Financial Management","57_2_International Financial Management","58_1_International Financial Management","58_2_International Financial Management","59_1_Derivatives","60_1_Derivatives","60_2_Derivatives","61_1_Derivatives","61_2_Derivatives","62_1_Derivatives","63_1_Derivatives","63_2_Derivatives","65_1_Derivatives","65_2_Derivatives","66_1_Derivatives","66_2_Derivatives","67_1_Derivatives","67_2_Derivatives","68_2_Derivatives"];
+  const wanted=new Set(titles.map(normText));state.items.forEach(i=>{if(i.subject==="AFM"&&i.kind==="lecture"&&wanted.has(normText(i.title)))i.progress=100});titles.forEach((t,n)=>{if(!state.items.some(i=>i.subject==="AFM"&&i.kind==="lecture"&&normText(i.title)===normText(t))){const m=t.match(/^(\d+)_(\d+[a-z]?)/);state.items.push({id:"afm-sync-"+n,subject:"AFM",kind:"lecture",no:m?m[1]:"",title:t,chapter:"",duration:0,progress:100,rev:{r1:0,r2:0,r3:0}})}});localStorage.setItem("afm-excel-completion-v1","1");save()
 }
 
 function dashboard(){
-  const ls=lectureItems(), next=ls.filter(i=>Number(i.progress||0)<100).sort((a,b)=>Number(a.progress||0)-Number(b.progress||0)).slice(0,5);
-  document.getElementById("content").innerHTML=
-    '<div class="grid stats">'+stat("Lecture progress",pct(ls)+"%","FR + AFM + Audit")+stat("Lecture hours",duration(ls.reduce((n,i)=>n+Number(i.duration||0),0)),"Total loaded")+stat("Revision 1",revPct("r1")+"%","Conceptual")+stat("Revision 2",revPct("r2")+"%","Exam-oriented")+'</div>'+
-    '<div class="section"><div><h2>CA Final Preparation</h2><p>November 2027 • lectures + self-study</p></div></div>'+
-    '<div class="grid subjects">'+state.subjects.map(subjectCard).join("")+'</div>'+
-    '<div class="card" style="padding:19px;margin-top:18px"><div class="section"><div><h2>Continue Studying</h2><p>Lowest-progress lecture items</p></div></div>'+
-    (next.length?'<div class="list">'+next.map(i=>'<div class="item"><div><b>'+esc(i.title)+'</b><small>'+esc(subject(i.subject)?.code||i.subject)+' • '+duration(i.duration)+'</small></div><button class="ghost" onclick="editItem(\''+i.id+'\')">Open</button></div>').join("")+'</div>':'<div class="empty">Your preloaded lectures will appear here.</div>')+
-    '</div>';
+  const ls=lectureItems(), completed=ls.filter(i=>Number(i.progress)>=100).length;
+  const exam=state.settings.examDate||"2027-11-01",d=daysUntil(exam);
+  const readiness=readinessScore(),backlog=backlogItems(),weak=weakTopics();
+  const hoursToday=state.studyLog.filter(x=>x.date===iso(today())).reduce((n,x)=>n+Number(x.hours||0),0);
+  const html='<div class="hero"><div><span class="eyebrow">CA FINAL • '+esc(state.settings.attempt)+'</span><h2>Are you on track?</h2><p class="muted">One simple view of lectures, study, questions, revisions and exam readiness.</p></div><div class="examcount"><b>'+(d!==null?Math.max(0,d):"—")+'</b><span>days to exam</span></div></div>'+
+  '<div class="grid stats">'+stat("Readiness",readiness+"%","Based on your current tracker")+stat("Lecture progress",pct(ls)+"%",completed+" of "+ls.length+" completed")+stat("Study today",hoursToday.toFixed(1)+"h","Target "+Number(state.settings.dailyHours||6)+"h")+stat("Backlog",backlog.length,"Items needing attention")+'</div>'+
+  '<div class="section"><div><h2>Your subjects</h2><p>Only the information you need at a glance.</p></div><button class="ghost" onclick="setView(\'subjects\')">View all</button></div>'+
+  '<div class="grid subjects">'+state.subjects.map(subjectCard).join("")+'</div>'+
+  '<div class="grid two">'+
+  '<div class="card pad"><div class="section compact"><div><h2>Today</h2><p>Completed lectures are automatically logged here.</p></div><button class="ghost" onclick="openLog()">+ Log study</button></div>'+todayLogHtml()+'</div>'+
+  '<div class="card pad"><div class="section compact"><div><h2>Needs attention</h2><p>Backlog and weak areas.</p></div><button class="ghost" onclick="setView(\'planner\')">Open planner</button></div>'+attentionHtml()+'</div></div>';
+  document.getElementById("content").innerHTML=html;
 }
 function stat(a,b,c){return '<div class="stat"><small>'+a+'</small><b>'+b+'</b><span class="muted">'+c+'</span></div>'}
 function subjectCard(s){
-  const a=itemsFor(s.id),p=s.mode==="lecture"?pct(a):0;
-  return '<div class="card subject"><div class="row"><div><div class="code">'+esc(s.code)+'</div><h3>'+esc(s.name)+'</h3><span class="muted">'+esc(s.desc)+'</span></div><span class="tag '+(s.mode==="self"?"self":"")+'">'+(s.mode==="lecture"?"Lectures":"Self-study")+'</span></div><div class="progress"><i style="width:'+p+'%"></i></div><div class="row"><small>'+p+'% progress</small><small>'+a.length+' items</small></div><div style="margin-top:12px"><button class="ghost" onclick="openSubject(\''+s.id+'\')">Open</button></div></div>';
+  const a=itemsFor(s.id),isLecture=modeFor(s),p=isLecture?pct(a):studyProgress(s.id);
+  return '<div class="card subject"><div class="row"><div><div class="code">'+esc(s.code)+'</div><h3>'+esc(s.name)+'</h3><span class="muted">'+esc(s.desc)+'</span></div><span class="tag '+(isLecture?"":"self")+'">'+(isLecture?"Lecture mode":"Self-study")+'</span></div>'+
+  '<div class="mini-label"><span>'+(isLecture?"Lecture progress":"Study progress")+'</span><b>'+p+'%</b></div><div class="progress"><i style="width:'+p+'%"></i></div>'+
+  '<div class="subject-meta"><span>'+a.length+' items</span><span>'+studyProgress(s.id)+'% study</span></div><button class="ghost full" onclick="openSubject(\''+s.id+'\')">Open subject</button></div>';
 }
-function subjects(){document.getElementById("content").innerHTML='<div class="grid subjects">'+state.subjects.map(subjectCard).join("")+'</div>'}
-function openSubject(id){filter=id;setView("lectures")}
+function studyProgress(sid){
+  const a=itemsFor(sid);if(!a.length)return 0;
+  return Math.round(a.reduce((n,i)=>n+(Number(i.progress||0)+Number(i.questionPct||0)+Number(i.notesPct||0))/3,0)/a.length)
+}
+function subjects(){document.getElementById("content").innerHTML='<div class="section"><div><h2>Subjects</h2><p>Lecture mode switches on automatically when lecture items exist.</p></div></div><div class="grid subjects">'+state.subjects.map(subjectCard).join("")+'</div>'}
+function openSubject(id){filter=id;setView("study")}
 
-function lectures(){
-  const a=lectureItems().filter(i=>filter==="ALL"||i.subject===filter);
-  document.getElementById("content").innerHTML=
-  '<div class="filters"><select class="select" id="lf"><option value="ALL">All lecture subjects</option>'+state.subjects.filter(s=>s.mode==="lecture").map(s=>'<option value="'+s.id+'" '+(filter===s.id?"selected":"")+'>'+s.code+' — '+esc(s.name)+'</option>').join("")+'</select><input id="ls" class="input" placeholder="Search lecture / chapter"><select id="lt" class="select"><option value="all">All status</option><option value="todo">Not started</option><option value="doing">In progress</option><option value="done">Completed</option></select><button class="primary" onclick="completionSync()">↻ Sync Done from Excel</button></div>'+
-  '<div class="card"><div class="tablewrap"><table class="table"><thead><tr><th>Done</th><th>Subject</th><th>No.</th><th>Lecture</th><th>Duration</th><th>Progress</th><th>Revision</th><th></th></tr></thead><tbody id="lectureRows">'+lectureRows(a)+'</tbody></table></div></div>';
-  document.getElementById("lf").onchange=e=>{filter=e.target.value;lectures()};
-  document.getElementById("ls").oninput=filterLectureRows;
-  document.getElementById("lt").onchange=filterLectureRows;
+function study(){
+  const sid=filter==="ALL"?"ALL":filter,a=state.items.filter(i=>sid==="ALL"||i.subject===sid);
+  document.getElementById("content").innerHTML='<div class="filters"><select class="select" id="sf"><option value="ALL">All subjects</option>'+state.subjects.map(s=>'<option value="'+s.id+'" '+(filter===s.id?"selected":"")+'>'+s.code+' — '+esc(s.name)+'</option>').join("")+'</select><select class="select" id="sk"><option value="all">All work</option><option value="lecture">Lectures</option><option value="study">Self-study</option><option value="questions">Questions</option></select><input id="ss" class="input" placeholder="Search topic / chapter"><button class="primary" onclick="quickAdd()">+ Add</button></div>'+
+  '<div class="card"><div class="tablewrap"><table class="table"><thead><tr><th>Done</th><th>Subject</th><th>Work</th><th>Topic</th><th>Progress</th><th>Questions</th><th></th></tr></thead><tbody id="studyRows">'+studyRows(a)+'</tbody></table></div></div>';
+  document.getElementById("sf").onchange=e=>{filter=e.target.value;study()};document.getElementById("ss").oninput=filterStudyRows;document.getElementById("sk").onchange=filterStudyRows;
 }
-function lectureRows(a){
-  if(!a.length)return '<tr><td colspan="8"><div class="empty">No lecture items loaded.</div></td></tr>';
-  return a.map(i=>'<tr data-search="'+esc((i.title+" "+i.chapter+" "+i.day).toLowerCase())+'" data-status="'+(Number(i.progress||0)>=100?"done":Number(i.progress||0)>0?"doing":"todo")+'"><td><label class="donewrap"><input class="donecheck" data-id="'+esc(i.id)+'" type="checkbox" '+(Number(i.progress||0)>=100?"checked":"")+' onchange="toggleLecture(this.dataset.id,this.checked)" aria-label="Mark lecture completed"><span>Done</span></label></td><td><b>'+esc(subject(i.subject)?.code||i.subject)+'</b></td><td>'+esc(i.no||"—")+'</td><td>'+esc(i.title)+'</td><td>'+duration(i.duration)+'</td><td><div class="progress" style="width:120px"><i style="width:'+Number(i.progress||0)+'%"></i></div><small>'+Number(i.progress||0)+'%</small></td><td><small>R1 '+Number(i.rev?.r1||0)+'% • R2 '+Number(i.rev?.r2||0)+'% • R3 '+Number(i.rev?.r3||0)+'%</small></td><td><button class="ghost" data-id="'+esc(i.id)+'" onclick="editItem(this.dataset.id)">Open</button></td></tr>').join("");
+function studyRows(a){
+  if(!a.length)return '<tr><td colspan="7"><div class="empty">No study items yet.</div></td></tr>';
+  return a.map(i=>'<tr data-search="'+esc(normText(i.title+" "+(i.chapter||"")))+'" data-kind="'+(i.kind==="lecture"?"lecture":i.kind==="question"?"questions":"study")+'">'+
+  '<td><input class="donecheck" type="checkbox" '+(Number(i.progress)>=100?"checked":"")+' onchange="toggleLecture(this.dataset.id,this.checked)" data-id="'+esc(i.id)+'"></td>'+
+  '<td><b>'+esc(subject(i.subject)?.code||i.subject)+'</b></td><td><span class="tag '+(i.kind==="lecture"?"":"self")+'">'+(i.kind==="lecture"?"Lecture":i.kind==="question"?"Questions":"Study")+'</span></td>'+
+  '<td><b>'+esc(i.title)+'</b><small class="muted">'+esc(i.chapter||"")+'</small></td><td><div class="progress" style="width:120px"><i style="width:'+Number(i.progress||0)+'%"></i></div><small>'+Number(i.progress||0)+'%</small></td>'+
+  '<td>'+Number(i.questionPct||0)+'%</td><td><button class="ghost" data-id="'+esc(i.id)+'" onclick="editItem(this.dataset.id)">Open</button></td></tr>').join("")
 }
-function filterLectureRows(){
-  const q=document.getElementById("ls").value.toLowerCase(),st=document.getElementById("lt").value;
-  document.querySelectorAll("#lectureRows tr").forEach(r=>r.style.display=((r.dataset.search||"").includes(q)&&(st==="all"||r.dataset.status===st))?"":"none");
-}
+function filterStudyRows(){const q=normText(document.getElementById("ss").value),k=document.getElementById("sk").value;document.querySelectorAll("#studyRows tr").forEach(r=>r.style.display=((r.dataset.search||"").includes(q)&&(k==="all"||r.dataset.kind===k))?"":"none")}
 
 function revisions(){
   const a=state.items.filter(i=>filter==="ALL"||i.subject===filter);
-  document.getElementById("content").innerHTML='<div class="filters"><select class="select" id="rf"><option value="ALL">All subjects</option>'+state.subjects.map(s=>'<option value="'+s.id+'" '+(filter===s.id?"selected":"")+'>'+s.code+' — '+esc(s.name)+'</option>').join("")+'</select></div><div class="grid subjects">'+
-  [["r1","Revision 1","Conceptual revision"],["r2","Revision 2","Exam-oriented revision"],["r3","Revision 3","Rapid final revision"]].map(x=>'<div class="card subject"><div class="row"><div><h3>'+x[1]+'</h3><span class="muted">'+x[2]+'</span></div><b>'+revPct(x[0])+'%</b></div><div class="progress"><i style="width:'+revPct(x[0])+'%"></i></div><div class="list">'+a.slice(0,40).map(i=>'<label class="item"><div><b>'+esc(i.title)+'</b><small>'+esc(subject(i.subject)?.code||i.subject)+'</small></div><input type="checkbox" '+(Number(i.rev?.[x[0]]||0)>=100?"checked":"")+' onchange="toggleRev(\''+i.id+'\',\''+x[0]+'\',this.checked)"></label>').join("")+'</div></div>').join("")+'</div>';
-  document.getElementById("rf").onchange=e=>{filter=e.target.value;revisions()};
+  const cards=[["r1","Revision 1","Conceptual"],["r2","Revision 2","Exam-oriented"],["r3","Revision 3","Rapid final revision"]];
+  document.getElementById("content").innerHTML='<div class="section"><div><h2>Revision engine</h2><p>Completed work is automatically given suggested revision dates.</p></div><select class="select" id="rf"><option value="ALL">All subjects</option>'+state.subjects.map(s=>'<option value="'+s.id+'">'+s.code+'</option>').join("")+'</select></div>'+
+  '<div class="grid revisioncards">'+cards.map(x=>'<div class="card pad"><div class="row"><div><h3>'+x[1]+'</h3><span class="muted">'+x[2]+'</span></div><b>'+revPct(x[0])+'%</b></div><div class="progress"><i style="width:'+revPct(x[0])+'%"></i></div><div class="list">'+a.slice(0,35).map(i=>'<label class="item"><div><b>'+esc(i.title)+'</b><small>'+esc(subject(i.subject)?.code||i.subject)+' • '+revisionDate(i,x[0])+'</small></div><input type="checkbox" '+(Number(i.rev?.[x[0]]||0)>=100?"checked":"")+' onchange="toggleRev(\''+i.id+'\',\''+x[0]+'\',this.checked)"></label>').join("")+'</div></div>').join("")+'</div>';
+  document.getElementById("rf").value=filter;document.getElementById("rf").onchange=e=>{filter=e.target.value;revisions()}
 }
-function resources(){
-  document.getElementById("content").innerHTML='<div class="section"><div><h2>Resource Library</h2><p>Google Drive, YouTube, ICAI, RTP, MTP, notes and question banks.</p></div><button class="primary" onclick="resourceModal()">+ Add Resource</button></div><div class="card" style="padding:16px">'+(state.resources.length?'<div class="list">'+state.resources.map(r=>'<div class="item"><div><b>'+esc(r.name)+'</b><small>'+esc(subject(r.subject)?.code||r.subject||"General")+' • '+esc(r.type||"Resource")+'</small></div><a class="primary" target="_blank" rel="noopener" href="'+esc(r.url)+'">Open</a></div>').join("")+'</div>':'<div class="empty">No resources added yet.</div>')+'</div>';
+function revisionDate(i,r){
+  if(!i.completedAt)return "Complete the item to schedule";
+  const base=new Date(i.completedAt+"T00:00:00"),days=r==="r1"?7:r==="r2"?30:60;base.setDate(base.getDate()+days);return fmtDate(iso(base))
 }
-function imports(){
-  document.getElementById("content").innerHTML='<div class="card" style="padding:20px"><div class="section"><div><h2>Import Centre</h2><p>Upload your lecture Excel and the tracker will read the Done column and update completion automatically.</p></div></div><div class="grid subjects">'+
-  state.subjects.map(s=>s.mode==="lecture"
-    ? '<div class="card subject"><div class="row"><div><div class="code">'+s.code+'</div><h3>'+esc(s.name)+'</h3><span class="muted">Sync completed lectures from your Excel file</span></div><span class="tag">Lecture</span></div><div style="margin-top:13px"><button class="primary" onclick="completionSync(\''+s.id+'\')">⇧ Upload '+s.code+' Excel</button></div></div>'
-    : '<div class="card subject"><div class="row"><div><div class="code">'+s.code+'</div><h3>'+esc(s.name)+'</h3><span class="muted">'+esc(s.desc)+'</span></div><span class="tag self">Self-study</span></div><div style="margin-top:13px"><button class="primary" onclick="itemModal(\''+s.id+'\')">＋ Add Self-study Item</button></div></div>'
-  ).join("")+
-  '</div><div class="card" style="padding:16px;margin-top:16px"><b>How Excel sync works</b><p class="muted">The importer detects the header row, reads the Lectures column, finds the completion/Done column (even if it has no heading), and matches lecture titles with the preloaded FR/AFM data.</p></div></div>';
+
+function todayLogHtml(){
+  const logs=state.studyLog.filter(x=>x.date===iso(today())).sort((a,b)=>String(b.time||"").localeCompare(String(a.time||"")));
+  if(!logs.length)return '<div class="empty">No study logged yet. Mark a lecture Done or add a study session.</div>';
+  return '<div class="list">'+logs.slice(0,8).map(x=>'<div class="item"><div><b>'+esc(subject(x.subject)?.code||x.subject||"Study")+' • '+esc(x.title||"Study session")+'</b><small>'+Number(x.hours||0).toFixed(1)+'h • '+esc(x.type||"Study")+'</small></div></div>').join("")+'</div>'
 }
-function uploadFor(id){filter=id;if(subject(id)?.mode==="self"){itemModal(id);return}completionSync(id)}
-function excelDuration(v){
-  if(v===null||v===undefined||v==="")return 0;
-  if(typeof v==="number")return v>0&&v<1?v*86400:v;
-  return seconds(v);
+function attentionHtml(){
+  const b=backlogItems().slice(0,4),w=weakTopics().slice(0,3);
+  let out=b.map(i=>'<div class="item"><div><b>⚠ '+esc(i.title)+'</b><small>'+esc(subject(i.subject)?.code||i.subject)+' • '+i.reason+'</small></div></div>').join("");
+  out+=w.map(i=>'<div class="item"><div><b>Weak: '+esc(i.title)+'</b><small>'+esc(subject(i.subject)?.code||i.subject)+' • '+i.score+'% practice</small></div></div>').join("");
+  return out||'<div class="empty">Nothing urgent. Keep going.</div>'
 }
-function normText(v){
-  return String(v??"").toLowerCase().replace(/[\u00a0]/g," ").replace(/[_-]+/g," ").replace(/\s+/g," ").trim();
+function backlogItems(){
+  const out=[],today=iso(today());
+  state.items.forEach(i=>{if(i.kind==="lecture"&&Number(i.progress)<100&&i.plannedDate&&i.plannedDate<today)out.push({...i,reason:"planned date passed"})});
+  state.items.forEach(i=>{if(i.kind!=="lecture"&&Number(i.progress)<100&&i.dueDate&&i.dueDate<today)out.push({...i,reason:"due date passed"})});
+  return out
 }
-function findHeaderRow(a){
-  // Excel exports often have title/instruction rows above the real table header.
-  // Look for the strongest lecture-table signature in the first 20 rows.
-  let bestRow=0,bestScore=-1;
-  for(let r=0;r<Math.min(a.length,20);r++){
-    const h=(a[r]||[]).map(x=>normText(x));
-    if(!h.length)continue;
-    let score=0;
-    if(h.some(x=>x==="lectures"||x.includes("lecture title")||x.includes("lecture name")))score+=5;
-    if(h.some(x=>x==="sr no"||x.includes("sr no")||x.includes("lecture no")||x==="no"||x.includes("lecture number")))score+=3;
-    if(h.some(x=>x.includes("duration")||x.includes("time")||x.includes("length")))score+=2;
-    if(h.some(x=>x==="done"||x.includes("completed")||x.includes("complete")||x.includes("status")||x.includes("progress")))score+=2;
-    if(h.some(x=>x.includes("day")))score+=1;
-    if(score>bestScore){bestScore=score;bestRow=r}
-  }
-  return bestScore>=5?bestRow:0;
+function weakTopics(){return state.items.filter(i=>Number(i.questionPct||0)>0&&Number(i.questionPct||0)<70).sort((a,b)=>Number(a.questionPct)-Number(b.questionPct)).map(i=>({title:i.title,subject:i.subject,score:Number(i.questionPct||0)}))}
+function readinessScore(){
+  const lecture=lectureItems().length?pct(lectureItems()):0;
+  const study=state.items.length?Math.round(state.items.reduce((n,i)=>n+studyProgress(i.subject),0)/state.subjects.length):0;
+  const r1=revPct("r1"),r2=revPct("r2"),r3=revPct("r3");
+  const questions=state.items.filter(i=>i.questionPct>0).length?Math.round(state.items.reduce((n,i)=>n+Number(i.questionPct||0),0)/Math.max(1,state.items.filter(i=>i.questionPct>0).length)):0;
+  return Math.round(lecture*.3+study*.2+r1*.15+r2*.15+r3*.1+questions*.1)
 }
-function detectColumns(a,hr){
-  const h=(a[hr]||[]).map(x=>normText(x));
-  const find=names=>h.findIndex(x=>names.some(n=>x===n||x.includes(n)));
-  const title=find(["lectures","lecture title","lecture name","topic","title"]);
-  const no=find(["sr no","lecture no","lecture number","no"]);
-  const dur=find(["duration","time","length"]);
-  const progress=find(["progress","completion","% complete","percent complete"]);
-  let done=find(["done","status","completed","complete","watched"]);
-  if(done<0){
-    // Some of the user's files have an unlabelled Done column. Find the
-    // column containing the highest number of recognisable completion values.
-    let best=-1,bestCount=0;
-    for(let col=0;col<(a[hr]?.length||0);col++){
-      let count=0;
-      for(let r=hr+1;r<a.length;r++){
-        const v=String(a[r]?.[col]??"").trim().toLowerCase();
-        if(/^(done|completed|complete|yes|y|true|1|✓|✔|☑|finished|watched)$/i.test(v)||v==="100%"||v==="100")count++;
-      }
-      if(count>bestCount){bestCount=count;best=col}
-    }
-    if(bestCount>0)done=best;
-  }
-  return {title,no,dur,done,progress};
-}
-function completionValue(v){
-  const raw=String(v??"").trim().toLowerCase();
-  if(!raw)return false;
-  if(/^(done|completed|complete|yes|y|true|1|✓|✔|☑|finished|watched)$/i.test(raw))return true;
-  if(raw==="100%"||raw==="100")return true;
-  return false;
-}
-function completionSync(subjectId){
-  const allowed=subjectId?subject(subjectId)?.code:"FR / AFM";
-  const m=document.createElement("div");m.className="modalbg";
-  m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>Sync Completed Lectures</h2><button class="close">×</button></div>'+
-    '<p class="muted">Upload the '+esc(allowed||"FR / AFM")+' Excel. The tracker will detect the lecture column and completion column automatically.</p>'+
-    '<label class="file">Choose Excel / CSV<input id="syncFile" type="file" accept=".xlsx,.xls,.csv" hidden></label>'+
-    '<div id="syncMsg" style="margin-top:14px"></div><div class="actions"><button class="ghost" id="cancel">Cancel</button></div></div>';
-  document.getElementById("modal").appendChild(m);
-  m.querySelector(".close").onclick=()=>m.remove();
-  m.querySelector("#cancel").onclick=()=>m.remove();
-  m.querySelector("#syncFile").onchange=e=>e.target.files[0]&&syncExcel(e.target.files[0],m,subjectId);
-}
-async function syncExcel(file,m,subjectId){
-  if(typeof XLSX==="undefined"){m.querySelector("#syncMsg").innerHTML='<p>Excel reader is unavailable. Please reload the page.</p>';return}
-  try{
-    const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true,raw:true});
-    const incoming=[];
-    const diagnostics=[];
-    wb.SheetNames.forEach(sn=>{
-      const a=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:"",raw:true});
-      if(!a.length)return;
-      const hr=findHeaderRow(a), cols=detectColumns(a,hr);
-      if(cols.title<0){diagnostics.push(sn+": lecture column not found");return}
-      let sheetRows=0,sheetDone=0;
-      for(let r=hr+1;r<a.length;r++){
-        const title=String(a[r]?.[cols.title]??"").trim();
-        if(!title||/^(lectures|total|grand total)$/i.test(title))continue;
-        sheetRows++;
-        const rawDone=cols.done>=0?a[r]?.[cols.done]:"";
-        let isDone=completionValue(rawDone);
-        // If no explicit Done value exists, accept a 100% progress/completion column.
-        if(!isDone&&cols.progress>=0)isDone=completionValue(a[r]?.[cols.progress]);
-        if(isDone)sheetDone++;
-        incoming.push({
-          sheet:sn,
-          title,
-          no:cols.no>=0?String(a[r]?.[cols.no]??"").trim():"",
-          duration:cols.dur>=0?excelDuration(a[r]?.[cols.dur]):0,
-          isDone
-        });
-      }
-      diagnostics.push(sn+": "+sheetRows+" lecture rows, "+sheetDone+" completed");
-    });
-    if(!incoming.length){
-      m.querySelector("#syncMsg").innerHTML='<p>No lecture rows were detected.</p><p class="muted">'+esc(diagnostics.join(" • "))+'</p>';
-      return;
-    }
-    const targetSubjects=subjectId?[subjectId]:["FR","AFM"];
-    const existing=lectureItems().filter(i=>targetSubjects.includes(i.subject));
-    const matched=[],added=[];
-    incoming.forEach(r=>{
-      if(!r.isDone)return;
-      const nt=normText(r.title);
-      let best=existing.find(i=>normText(i.title)===nt);
-      if(!best&&r.no)best=existing.find(i=>String(i.no||"").trim()===r.no&&targetSubjects.includes(i.subject));
-      if(best){matched.push(best);return}
-      const sid=subjectId||(/afm/i.test(r.sheet)||/advanced financial/i.test(r.title)?"AFM":"FR");
-      if(targetSubjects.includes(sid)){
-        const x={id:"sync-"+Date.now()+"-"+added.length,subject:sid,kind:"lecture",no:r.no,title:r.title,chapter:"",day:"",duration:Number(r.duration||0),progress:100,rev:{r1:0,r2:0,r3:0}};
-        state.items.push(x);existing.push(x);added.push(x);
-      }
-    });
-    const unique=[...new Set(matched)];
-    const doneCount=incoming.filter(x=>x.isDone).length;
-    const before=unique.filter(i=>Number(i.progress||0)>=100).length;
-    let warning="";
-    if(doneCount===0)warning='<p><b>No completed rows were detected.</b> If your Excel uses clickable/form checkboxes, those controls may not be stored as cell values. Use Done/Yes/TRUE/1 or 100% in the cells, then upload again.</p>';
-    m.querySelector("#syncMsg").innerHTML='<div class="syncsummary"><div><b>'+unique.length+'</b><span>matched existing</span></div><div><b>'+added.length+'</b><span>new lectures added</span></div><div><b>'+doneCount+'</b><span>completed rows found</span></div></div><p class="muted">'+esc(diagnostics.join(" • "))+'</p>'+warning+(doneCount>0?'<p>'+before+' were already complete. Click below to apply the '+(unique.length+added.length)+' completed lectures.</p><button class="primary" id="apply">Apply Sync</button>':"");
-    const apply=m.querySelector("#apply");
-    if(apply)apply.onclick=()=>{
-      unique.forEach(i=>i.progress=100);
-      save();m.remove();toast((unique.length+added.length)+" lectures synced as complete");render();
-    };
-  }catch(e){console.error(e);m.querySelector("#syncMsg").innerHTML='<p>Could not read the file: '+esc(e.message)+'</p>'}
-}
-function analytics(){
-  const ls=lectureItems();
-  document.getElementById("content").innerHTML='<div class="grid stats">'+stat("Items",state.items.length,"All study items")+stat("Lecture hours",duration(ls.reduce((n,i)=>n+Number(i.duration||0),0)),"FR + AFM + Audit")+stat("R3 progress",revPct("r3")+"%","Rapid revision")+stat("Resources",state.resources.length,"Saved links")+'</div><div class="card" style="padding:19px;margin-top:18px"><h2 style="font-size:16px">Subject Progress</h2><div class="tablewrap"><table class="table"><thead><tr><th>Subject</th><th>Mode</th><th>Items</th><th>Progress</th></tr></thead><tbody>'+state.subjects.map(s=>{const a=itemsFor(s.id),p=s.mode==="lecture"?pct(a):0;return '<tr><td><b>'+s.code+' — '+esc(s.name)+'</b></td><td>'+s.mode+'</td><td>'+a.length+'</td><td><b>'+p+'%</b><div class="progress"><i style="width:'+p+'%"></i></div></td></tr>'}).join("")+'</tbody></table></div></div>';
-}
+
 function planner(){
-  const ls=lectureItems(),remaining=ls.reduce((n,i)=>n+Number(i.duration||0)*(1-Number(i.progress||0)/100),0),target=state.settings.lectureTarget?new Date(state.settings.lectureTarget+"T00:00:00"):null,today=new Date();today.setHours(0,0,0,0);const days=target?Math.max(1,Math.ceil((target-today)/86400000)+1):0;
-  document.getElementById("content").innerHTML='<div class="card" style="padding:20px"><div class="section"><div><h2>Preparation Planner</h2><p>Set milestones in Settings to calculate your daily lecture requirement.</p></div></div><div class="grid stats">'+stat("Remaining lecture hours",duration(remaining),"Based on progress")+stat("Daily lecture target",days?(remaining/3600/days).toFixed(1)+" h/day":"—","Set lecture target")+stat("R1",revPct("r1")+"%","Current")+stat("R2 / R3",revPct("r2")+"% / "+revPct("r3")+"%","Current")+'</div><div class="list">'+[["Lecture completion","lectureTarget"],["Revision 1","r1Target"],["Revision 2","r2Target"],["Revision 3","r3Target"],["Exam","examDate"]].map(x=>'<div class="item"><div><b>'+x[0]+'</b><small>'+(state.settings[x[1]]||"Not set")+'</small></div></div>').join("")+'</div></div>';
+  const backlog=backlogItems(),weak=weakTopics(),remaining=lectureItems().reduce((n,i)=>n+Number(i.duration||0)*(1-Number(i.progress||0)/100),0),target=state.settings.lectureTarget,days=target?Math.max(1,daysUntil(target)+1):0;
+  document.getElementById("content").innerHTML='<div class="grid stats">'+stat("Readiness",readinessScore()+"%","Overall exam preparation")+stat("Backlog",backlog.length,"Overdue items")+stat("Weak topics",weak.length,"Below 70% practice")+stat("Remaining lectures",duration(remaining),"At current progress")+'</div>'+
+  '<div class="grid two"><div class="card pad"><div class="section compact"><div><h2>Automatic backlog</h2><p>Anything planned but unfinished is shown here.</p></div></div>'+(backlog.length?'<div class="list">'+backlog.map(i=>'<div class="item"><div><b>'+esc(i.title)+'</b><small>'+esc(subject(i.subject)?.code||i.subject)+' • '+i.reason+'</small></div><button class="ghost" onclick="editItem(\''+i.id+'\')">Open</button></div>').join("")+'</div>':'<div class="empty">No overdue work.</div>')+'</div>'+
+  '<div class="card pad"><div class="section compact"><div><h2>Weak topics</h2><p>Question accuracy below 70%.</p></div></div>'+(weak.length?'<div class="list">'+weak.slice(0,10).map(i=>'<div class="item"><div><b>'+esc(i.title)+'</b><small>'+esc(subject(i.subject)?.code||i.subject)+' • '+i.score+'% practice</small></div></div>').join("")+'</div>':'<div class="empty">Add question scores to detect weak topics.</div>')+'</div></div>'+
+  '<div class="card pad"><h2>Targets</h2><div class="mapping">'+targetField("Lecture completion","lectureTarget")+targetField("Revision 1","r1Target")+targetField("Revision 2","r2Target")+targetField("Revision 3","r3Target")+'</div><div class="actions"><button class="primary" onclick="saveTargets()">Save targets</button></div><p class="muted">'+(days?duration(remaining/days)+" lecture time/day needed until "+fmtDate(target):"Set a lecture completion date to calculate your daily lecture load.")+'</p></div>'
 }
-function calendar(){
-  document.getElementById("content").innerHTML='<div class="card" style="padding:24px"><h2>Calendar</h2><p class="muted">Your milestone dates are shown below. Detailed day-by-day scheduling has been temporarily simplified while the tracker core is stabilized.</p><div class="list">'+[["Lecture completion","lectureTarget"],["Revision 1","r1Target"],["Revision 2","r2Target"],["Revision 3","r3Target"],["Exam","examDate"]].map(x=>'<div class="item"><b>'+x[0]+'</b><span class="tag">'+(state.settings[x[1]]||"Not set")+'</span></div>').join("")+'</div></div>';
+function targetField(label,key){return '<div class="field"><label>'+label+'</label><input id="target-'+key+'" type="date" class="input" value="'+esc(state.settings[key]||"")+'"></div>'}
+function saveTargets(){["lectureTarget","r1Target","r2Target","r3Target"].forEach(k=>state.settings[k]=document.getElementById("target-"+k).value);save();toast("Targets saved");render()}
+
+function resources(){
+  document.getElementById("content").innerHTML='<div class="section"><div><h2>Resources</h2><p>Keep every Drive, YouTube, ICAI, RTP, MTP and question bank link in one place.</p></div><button class="primary" onclick="resourceModal()">+ Add resource</button></div>'+
+  '<div class="card pad">'+(state.resources.length?'<div class="list">'+state.resources.map(r=>'<div class="item"><div><b>'+esc(r.name)+'</b><small>'+esc(subject(r.subject)?.code||r.subject||"General")+' • '+esc(r.type||"Resource")+(r.topic?" • "+esc(r.topic):"")+'</small></div><a class="primary" target="_blank" rel="noopener" href="'+esc(r.url)+'">Open</a></div>').join("")+'</div>':'<div class="empty">No resources yet.</div>')+'</div>'+
+  '<div class="card pad importbox"><h3>Lecture Excel sync</h3><p>Upload FR / AFM / Audit / DT / IDT lecture schedules whenever you have them. DT and IDT switch to lecture mode automatically when lectures are added.</p><button class="ghost" onclick="completionSync()">Upload lecture schedule</button></div>'
 }
 
 function settings(){
-  document.getElementById("content").innerHTML='<div class="card" style="padding:20px"><h2 style="font-size:16px">Study Plan Settings</h2><div class="mapping"><div class="field"><label>Attempt</label><input id="setAttempt" class="input" value="'+esc(state.settings.attempt)+'"></div><div class="field"><label>Exam date</label><input id="setExam" type="date" class="input" value="'+esc(state.settings.examDate)+'"></div><div class="field"><label>Lecture completion target</label><input id="setLecture" type="date" class="input" value="'+esc(state.settings.lectureTarget)+'"></div><div class="field"><label>Revision 1 target</label><input id="setR1" type="date" class="input" value="'+esc(state.settings.r1Target)+'"></div><div class="field"><label>Revision 2 target</label><input id="setR2" type="date" class="input" value="'+esc(state.settings.r2Target)+'"></div><div class="field"><label>Revision 3 target</label><input id="setR3" type="date" class="input" value="'+esc(state.settings.r3Target)+'"></div></div><div class="actions"><button class="primary" id="saveSettings">Save Settings</button></div></div><div class="card" style="padding:20px;margin-top:18px"><h2 style="font-size:16px">Data Backup</h2><button class="ghost" onclick="exportData()">Export JSON</button> <label class="file">Restore JSON<input id="restoreData" type="file" accept=".json" hidden></label></div>';
-  document.getElementById("saveSettings").onclick=()=>{state.settings.attempt=document.getElementById("setAttempt").value;state.settings.examDate=document.getElementById("setExam").value;state.settings.lectureTarget=document.getElementById("setLecture").value;state.settings.r1Target=document.getElementById("setR1").value;state.settings.r2Target=document.getElementById("setR2").value;state.settings.r3Target=document.getElementById("setR3").value;save();toast("Settings saved");render()};
-  document.getElementById("restoreData").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{state=normalize(JSON.parse(r.result));save();render();toast("Backup restored")}catch(_){toast("Invalid backup")}};r.readAsText(f)};
+  document.getElementById("content").innerHTML='<div class="card pad"><h2>Settings</h2><p class="muted">Keep this page simple: exam date, daily target and backup.</p><div class="mapping">'+
+  '<div class="field"><label>Attempt</label><input id="setAttempt" class="input" value="'+esc(state.settings.attempt)+'"></div><div class="field"><label>Exam date</label><input id="setExam" type="date" class="input" value="'+esc(state.settings.examDate)+'"></div><div class="field"><label>Daily study target (hours)</label><input id="setHours" type="number" min="1" max="16" class="input" value="'+Number(state.settings.dailyHours||6)+'"></div></div><div class="actions"><button class="primary" id="saveSettings">Save</button></div></div>'+
+  '<div class="card pad"><h2>Backup</h2><p class="muted">Export your tracker before changing devices or clearing browser data.</p><button class="ghost" onclick="exportData()">Export backup</button> <label class="file">Restore backup<input id="restoreData" type="file" accept=".json" hidden></label></div>';
+  document.getElementById("saveSettings").onclick=()=>{state.settings.attempt=document.getElementById("setAttempt").value;state.settings.examDate=document.getElementById("setExam").value;state.settings.dailyHours=Number(document.getElementById("setHours").value)||6;save();toast("Settings saved");render()};
+  document.getElementById("restoreData").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{state=normalize(JSON.parse(r.result));save();render();toast("Backup restored")}catch(_){toast("Invalid backup")}};r.readAsText(f)}
 }
 
-
+function quickAdd(){itemModal(filter==="ALL"?"FR":filter)}
 function itemModal(subjectId){
-  const sid=subjectId||filter==="ALL"?"FR":subjectId||filter,m=document.createElement("div");m.className="modalbg";
-  m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>Add Study Item</h2><button class="close">×</button></div><div class="mapping"><div class="field"><label>Subject</label><select id="ms" class="select">'+state.subjects.map(s=>'<option value="'+s.id+'" '+(s.id===sid?"selected":"")+'>'+s.code+' — '+esc(s.name)+'</option>').join("")+'</select></div><div class="field"><label>Type</label><select id="mk" class="select"><option value="lecture">Lecture</option><option value="study">Self-study</option></select></div><div class="field"><label>No.</label><input id="mn" class="input"></div><div class="field"><label>Title</label><input id="mt" class="input"></div><div class="field"><label>Chapter / Module</label><input id="mc" class="input"></div><div class="field"><label>Duration</label><input id="md" class="input" placeholder="2:10:30"></div></div><div class="actions"><button class="ghost" id="cancel">Cancel</button><button class="primary" id="saveItem">Save</button></div></div>';
+  const sid=subjectId||"FR",m=document.createElement("div");m.className="modalbg";
+  m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>Add study work</h2><button class="close">×</button></div><div class="mapping"><div class="field"><label>Subject</label><select id="ms" class="select">'+state.subjects.map(s=>'<option value="'+s.id+'" '+(s.id===sid?"selected":"")+'>'+s.code+' — '+esc(s.name)+'</option>').join("")+'</select></div><div class="field"><label>Type</label><select id="mk" class="select"><option value="study">Study</option><option value="question">Questions</option><option value="lecture">Lecture</option></select></div><div class="field"><label>Topic</label><input id="mt" class="input"></div><div class="field"><label>Chapter / Module</label><input id="mc" class="input"></div><div class="field"><label>Duration</label><input id="md" class="input" placeholder="2:00"></div><div class="field"><label>Due date</label><input id="mx" type="date" class="input"></div></div><div class="actions"><button class="ghost" id="cancel">Cancel</button><button class="primary" id="saveItem">Save</button></div></div>';
   document.getElementById("modal").appendChild(m);m.querySelector(".close").onclick=()=>m.remove();m.querySelector("#cancel").onclick=()=>m.remove();
-  m.querySelector("#saveItem").onclick=()=>{const title=m.querySelector("#mt").value.trim();if(!title){toast("Title is required");return}state.items.push({id:"manual-"+Date.now(),subject:m.querySelector("#ms").value,kind:m.querySelector("#mk").value,no:m.querySelector("#mn").value,title,chapter:m.querySelector("#mc").value,duration:seconds(m.querySelector("#md").value),progress:0,rev:{r1:0,r2:0,r3:0}});save();m.remove();render();toast("Saved")};
+  m.querySelector("#saveItem").onclick=()=>{const title=m.querySelector("#mt").value.trim();if(!title){toast("Topic is required");return}const kind=m.querySelector("#mk").value;state.items.push({id:"manual-"+Date.now(),subject:m.querySelector("#ms").value,kind,no:"",title,chapter:m.querySelector("#mc").value,duration:seconds(m.querySelector("#md").value),dueDate:m.querySelector("#mx").value,progress:0,questionPct:0,notesPct:0,rev:{r1:0,r2:0,r3:0}});save();m.remove();render();toast("Added")};
 }
 function editItem(id){
   const i=state.items.find(x=>x.id===id);if(!i)return;const m=document.createElement("div");m.className="modalbg";
-  m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>Edit Study Item</h2><button class="close">×</button></div><div class="mapping"><div class="field"><label>Title</label><input id="et" class="input" value="'+esc(i.title)+'"></div><div class="field"><label>Chapter / Day</label><input id="ec" class="input" value="'+esc(i.chapter||i.day||"")+'"></div><div class="field"><label>Progress %</label><input id="ep" type="number" min="0" max="100" class="input" value="'+Number(i.progress||0)+'"></div></div><div class="actions"><button class="ghost" id="deleteItem">Delete</button><button class="primary" id="saveEdit">Save</button></div></div>';
-  document.getElementById("modal").appendChild(m);m.querySelector(".close").onclick=()=>m.remove();m.querySelector("#deleteItem").onclick=()=>{state.items=state.items.filter(x=>x.id!==id);save();m.remove();render()};m.querySelector("#saveEdit").onclick=()=>{i.title=m.querySelector("#et").value.trim();i.chapter=m.querySelector("#ec").value.trim();i.progress=Math.max(0,Math.min(100,Number(m.querySelector("#ep").value)||0));save();m.remove();render();toast("Saved")};
+  m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>Edit work</h2><button class="close">×</button></div><div class="mapping"><div class="field"><label>Topic</label><input id="et" class="input" value="'+esc(i.title)+'"></div><div class="field"><label>Chapter / Module</label><input id="ec" class="input" value="'+esc(i.chapter||"")+'"></div><div class="field"><label>Progress %</label><input id="ep" type="number" min="0" max="100" class="input" value="'+Number(i.progress||0)+'"></div><div class="field"><label>Question practice %</label><input id="eq" type="number" min="0" max="100" class="input" value="'+Number(i.questionPct||0)+'"></div><div class="field"><label>Notes / concept %</label><input id="en" type="number" min="0" max="100" class="input" value="'+Number(i.notesPct||0)+'"></div><div class="field"><label>Due date</label><input id="ed" type="date" class="input" value="'+esc(i.dueDate||"")+'"></div></div><div class="actions"><button class="ghost" id="deleteItem">Delete</button><button class="primary" id="saveEdit">Save</button></div></div>';
+  document.getElementById("modal").appendChild(m);m.querySelector(".close").onclick=()=>m.remove();m.querySelector("#deleteItem").onclick=()=>{state.items=state.items.filter(x=>x.id!==id);save();m.remove();render()};m.querySelector("#saveEdit").onclick=()=>{i.title=m.querySelector("#et").value.trim();i.chapter=m.querySelector("#ec").value.trim();i.progress=Math.max(0,Math.min(100,Number(m.querySelector("#ep").value)||0));i.questionPct=Math.max(0,Math.min(100,Number(m.querySelector("#eq").value)||0));i.notesPct=Math.max(0,Math.min(100,Number(m.querySelector("#en").value)||0));i.dueDate=m.querySelector("#ed").value;if(i.progress>=100&&!i.completedAt)i.completedAt=iso(today());save();m.remove();render();toast("Saved")}
 }
-function toggleRev(id,r,yes){const i=state.items.find(x=>x.id===id);if(!i)return;i.rev=i.rev||{};i.rev[r]=yes?100:0;save();revisions()}
+function toggleLecture(id,yes){
+  const i=state.items.find(x=>x.id===id);if(!i)return;i.progress=yes?100:0;if(yes&&!i.completedAt)i.completedAt=iso(today());if(!yes)i.completedAt="";
+  save();autoLogCompletion(i,yes);render();toast(yes?"Completed":"Marked incomplete")
+}
+function autoLogCompletion(i,yes){
+  if(i.kind!=="lecture")return;
+  const key="lecture:"+i.id+":"+iso(today());
+  if(yes&&!state.studyLog.some(x=>x.key===key)){state.studyLog.push({id:"log-"+Date.now(),key,date:iso(today()),time:new Date().toTimeString().slice(0,5),subject:i.subject,title:i.title,type:"Lecture",hours:Number(i.duration||0)/3600,auto:true})}
+  if(!yes)state.studyLog=state.studyLog.filter(x=>x.key!==key);
+  save()
+}
+function openLog(){
+  const m=document.createElement("div");m.className="modalbg";m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>Log study</h2><button class="close">×</button></div><div class="mapping"><div class="field"><label>Subject</label><select id="lsu" class="select">'+state.subjects.map(s=>'<option value="'+s.id+'">'+s.code+'</option>').join("")+'</select></div><div class="field"><label>Type</label><select id="lty" class="select"><option>Study</option><option>Questions</option><option>Revision</option></select></div><div class="field"><label>Topic</label><input id="lto" class="input"></div><div class="field"><label>Hours</label><input id="lho" type="number" step=".25" min=".25" class="input" value="1"></div></div><div class="actions"><button class="ghost" id="c">Cancel</button><button class="primary" id="s">Log</button></div></div>';document.getElementById("modal").appendChild(m);m.querySelector(".close").onclick=()=>m.remove();m.querySelector("#c").onclick=()=>m.remove();m.querySelector("#s").onclick=()=>{state.studyLog.push({id:"log-"+Date.now(),date:iso(today()),time:new Date().toTimeString().slice(0,5),subject:m.querySelector("#lsu").value,title:m.querySelector("#lto").value.trim()||"Study session",type:m.querySelector("#lty").value,hours:Number(m.querySelector("#lho").value)||0});save();m.remove();render();toast("Study logged")}
+}
+function toggleRev(id,r,yes){const i=state.items.find(x=>x.id===id);if(!i)return;i.rev=i.rev||{};i.rev[r]=yes?100:0;save();render()}
 function resourceModal(){
-  const m=document.createElement("div");m.className="modalbg";m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>Add Resource</h2><button class="close">×</button></div><div class="mapping"><div class="field"><label>Name</label><input id="rn" class="input"></div><div class="field"><label>Subject</label><select id="rs" class="select">'+state.subjects.map(s=>'<option value="'+s.id+'">'+s.code+'</option>').join("")+'</select></div><div class="field"><label>Type</label><select id="rt" class="select"><option>Google Drive</option><option>YouTube</option><option>ICAI</option><option>RTP</option><option>MTP</option><option>Notes</option><option>Question Bank</option></select></div><div class="field"><label>URL</label><input id="ru" class="input"></div></div><div class="actions"><button class="ghost" id="cancel">Cancel</button><button class="primary" id="saveRes">Save</button></div></div>';
-  document.getElementById("modal").appendChild(m);m.querySelector(".close").onclick=()=>m.remove();m.querySelector("#cancel").onclick=()=>m.remove();m.querySelector("#saveRes").onclick=()=>{const n=m.querySelector("#rn").value.trim(),u=m.querySelector("#ru").value.trim();if(!n||!u){toast("Name and URL required");return}state.resources.push({id:"res-"+Date.now(),name:n,subject:m.querySelector("#rs").value,type:m.querySelector("#rt").value,url:u});save();m.remove();render();toast("Resource added")};
+  const m=document.createElement("div");m.className="modalbg";m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>Add resource</h2><button class="close">×</button></div><div class="mapping"><div class="field"><label>Name</label><input id="rn" class="input"></div><div class="field"><label>Subject</label><select id="rs" class="select">'+state.subjects.map(s=>'<option value="'+s.id+'">'+s.code+'</option>').join("")+'</select></div><div class="field"><label>Type</label><select id="rt" class="select"><option>Google Drive</option><option>YouTube</option><option>ICAI</option><option>RTP</option><option>MTP</option><option>Notes</option><option>Question Bank</option></select></div><div class="field"><label>Topic</label><input id="rq" class="input"></div><div class="field fullfield"><label>URL</label><input id="ru" class="input"></div></div><div class="actions"><button class="ghost" id="c">Cancel</button><button class="primary" id="s">Save</button></div></div>';document.getElementById("modal").appendChild(m);m.querySelector(".close").onclick=()=>m.remove();m.querySelector("#c").onclick=()=>m.remove();m.querySelector("#s").onclick=()=>{const n=m.querySelector("#rn").value.trim(),u=m.querySelector("#ru").value.trim();if(!n||!u){toast("Name and URL required");return}state.resources.push({id:"res-"+Date.now(),name:n,subject:m.querySelector("#rs").value,type:m.querySelector("#rt").value,topic:m.querySelector("#rq").value.trim(),url:u});save();m.remove();render();toast("Resource added")}
 }
-function toggleLecture(id,yes){const i=state.items.find(x=>x.id===id);if(!i)return;i.progress=yes?100:0;save();lectures();toast(yes?"Lecture marked complete":"Lecture marked incomplete")}
+
+function completionSync(subjectId){
+  const allowed=subjectId?subject(subjectId)?.code:"lecture subjects";const m=document.createElement("div");m.className="modalbg";
+  m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>Upload lecture schedule</h2><button class="close">×</button></div><p class="muted">Upload Excel / CSV with lecture number, title and optionally duration / Done. For DT or IDT, simply uploading a schedule activates lecture mode.</p><label class="file">Choose Excel / CSV<input id="syncFile" type="file" accept=".xlsx,.xls,.csv" hidden></label><div id="syncMsg" class="syncmsg"></div><div class="actions"><button class="ghost" id="cancel">Cancel</button></div></div>';
+  document.getElementById("modal").appendChild(m);m.querySelector(".close").onclick=()=>m.remove();m.querySelector("#cancel").onclick=()=>m.remove();m.querySelector("#syncFile").onchange=e=>e.target.files[0]&&syncExcel(e.target.files[0],m,subjectId)
+}
+function findHeaderRow(a){let best=0,score=-1;for(let r=0;r<Math.min(a.length,20);r++){const h=(a[r]||[]).map(normText);let s=0;if(h.some(x=>x==="lectures"||x.includes("lecture title")||x.includes("lecture name")||x==="title"))s+=5;if(h.some(x=>x.includes("lecture no")||x==="no"||x.includes("sr no")||x.includes("number")))s+=3;if(h.some(x=>x.includes("duration")||x.includes("time")))s+=2;if(h.some(x=>x.includes("done")||x.includes("status")||x.includes("progress")||x.includes("complete")))s+=2;if(s>score){score=s;best=r}}return score>=5?best:0}
+function detectColumns(a,hr){const h=(a[hr]||[]).map(normText);const find=n=>h.findIndex(x=>n.some(k=>x===k||x.includes(k)));const title=find(["lectures","lecture title","lecture name","topic","title"]),no=find(["sr no","lecture no","lecture number","no"]),dur=find(["duration","time","length"]),done=find(["done","status","completed","complete","watched"]),progress=find(["progress","completion","% complete"]);return{title,no,dur,done,progress}}
+function completionValue(v){const x=String(v??"").trim().toLowerCase();return /^(done|completed|complete|yes|y|true|1|✓|✔|☑|finished|watched|100%)$/.test(x)||x==="100"}
+async function syncExcel(file,m,subjectId){
+  if(typeof XLSX==="undefined"){m.querySelector("#syncMsg").innerHTML="<p>Excel reader unavailable. Reload the page.</p>";return}
+  try{
+    const wb=XLSX.read(await file.arrayBuffer(),{type:"array",raw:true}),incoming=[];
+    wb.SheetNames.forEach(sn=>{const a=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:"",raw:true});if(!a.length)return;const hr=findHeaderRow(a),c=detectColumns(a,hr);if(c.title<0)return;for(let r=hr+1;r<a.length;r++){const title=String(a[r]?.[c.title]??"").trim();if(!title||/^(total|grand total)$/i.test(title))continue;incoming.push({sheet:sn,title,no:c.no>=0?String(a[r]?.[c.no]??"").trim():"",duration:c.dur>=0?excelDuration(a[r]?.[c.dur]):0,done:c.done>=0?completionValue(a[r]?.[c.done]):false,progress:c.progress>=0?completionValue(a[r]?.[c.progress]):false})}});
+    if(!incoming.length){m.querySelector("#syncMsg").innerHTML="<p>No lecture rows detected.</p>";return}
+    let sid=subjectId;
+    if(!sid){const codes=state.subjects.filter(s=>s.mode==="lecture").map(s=>s.id);sid=codes.length===1?codes[0]:"FR";const choice=prompt("Which subject is this lecture schedule for? "+state.subjects.map(s=>s.code).join(", "),sid);if(choice&&subject(choice))sid=choice}
+    const existing=lectureItems().filter(i=>i.subject===sid),added=[],matched=[];
+    incoming.forEach(r=>{let x=existing.find(i=>normText(i.title)===normText(r.title));if(!x&&r.no)x=existing.find(i=>String(i.no||"")===r.no);if(x){if(r.done||r.progress)x.progress=100;matched.push(x)}else{const n={id:"import-"+Date.now()+"-"+added.length,subject:sid,kind:"lecture",no:r.no,title:r.title,chapter:"",duration:Number(r.duration||0),progress:(r.done||r.progress)?100:0,rev:{r1:0,r2:0,r3:0}};state.items.push(n);existing.push(n);added.push(n)}});
+    const s=subject(sid);if(s&&sid!=="FR"&&sid!=="AFM"&&sid!=="AUD"){s.mode="lecture";s.desc="Lecture based • schedule uploaded"}
+    save();m.querySelector("#syncMsg").innerHTML='<div class="syncsummary"><div><b>'+incoming.length+'</b><span>rows imported</span></div><div><b>'+matched.length+'</b><span>matched</span></div><div><b>'+added.length+'</b><span>new lectures</span></div></div><p>Lecture mode is now active for '+sid+'.</p><button class="primary" id="done">Done</button>';m.querySelector("#done").onclick=()=>{m.remove();render();toast("Lecture schedule imported")}
+  }catch(e){m.querySelector("#syncMsg").innerHTML="<p>Could not read the file: "+esc(e.message)+"</p>"}
+}
+function excelDuration(v){if(v===null||v===undefined||v==="")return 0;if(typeof v==="number")return v>0&&v<1?v*86400:v;return seconds(v)}
+
 function exportData(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}));a.download="CA-Final-Nov-2027-Study-Tracker.json";a.click()}
-function resetTracker(){localStorage.removeItem(KEY);localStorage.removeItem("ca-final-study-tracker-v2");location.reload()}
-
-function bind(){
-  document.querySelectorAll(".nav").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
-  const q=document.getElementById("quick");if(q)q.onclick=()=>itemModal();
-  const backup=document.getElementById("backup");if(backup)backup.onclick=exportData;
-}
-
-window.itemModal=itemModal;window.toggleLecture=toggleLecture;window.editItem=editItem;window.resourceModal=resourceModal;window.toggleRev=toggleRev;window.openSubject=openSubject;window.uploadFor=uploadFor;window.completionSync=completionSync;window.exportData=exportData;window.resetTracker=resetTracker;
-applyFRExcelCompletion();
-applyAFMExcelCompletion();
-bind();
-render();
-
-fetch("data/fr.json").then(r=>r.ok?r.json():[]).then(fr=>{
-  if(state.items.length===0){
-    return Promise.all([Promise.resolve(fr),fetch("data/afm.json").then(r=>r.ok?r.json():[]),fetch("data/audit.json").then(r=>r.ok?r.json():[])]);
-  }
-  return null;
-}).then(all=>{
-  if(!all)return;
-  const rows=[];
-  all.flat().forEach((r,i)=>rows.push({id:"pre-"+i,subject:r.subject,kind:"lecture",no:r.lectureNo,title:r.title,day:r.day||"",chapter:r.day||r.category||"",duration:Number(r.duration||0),category:r.category||"",concepts:r.raw||"",progress:0,rev:{r1:0,r2:0,r3:0}}));
-  state.items=rows;save();applyFRExcelCompletion();applyAFMExcelCompletion();render();
-}).catch(e=>console.warn("Lecture preload skipped",e));
+function bind(){document.querySelectorAll(".nav").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));const q=document.getElementById("quick");if(q)q.onclick=()=>quickAdd();const backup=document.getElementById("backup");if(backup)backup.onclick=exportData)}
+window.itemModal=itemModal;window.toggleLecture=toggleLecture;window.editItem=editItem;window.resourceModal=resourceModal;window.toggleRev=toggleRev;window.openSubject=openSubject;window.completionSync=completionSync;window.exportData=exportData;window.openLog=openLog;window.setView=setView;window.quickAdd=quickAdd;window.saveTargets=saveTargets;
+applyFRExcelCompletion();applyAFMExcelCompletion();bind();render();
+fetch("data/fr.json").then(r=>r.ok?r.json():[]).then(fr=>{if(state.items.length===0)return Promise.all([Promise.resolve(fr),fetch("data/afm.json").then(r=>r.ok?r.json():[]),fetch("data/audit.json").then(r=>r.ok?r.json():[])]);return null}).then(all=>{if(!all)return;state.items=all.flat().map((r,i)=>({id:"pre-"+i,subject:r.subject,kind:"lecture",no:r.lectureNo,title:r.title,day:r.day||"",chapter:r.day||r.category||"",duration:Number(r.duration||0),category:r.category||"",concepts:r.raw||"",progress:0,questionPct:0,notesPct:0,rev:{r1:0,r2:0,r3:0}}));save();applyFRExcelCompletion();applyAFMExcelCompletion();render()}).catch(e=>console.warn("Lecture preload skipped",e));
