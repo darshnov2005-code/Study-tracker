@@ -32,36 +32,30 @@ function normalize(s){
   s.items=s.items.map((x,i)=>({...x,id:x.id||("item-"+i),rev:{r1:0,r2:0,r3:0},...x,rev:{r1:0,r2:0,r3:0,...(x.rev||{})}}));
   return s;
 }
-function applyFRExcelCompletion(){
-  // Apply the user's uploaded FR Excel completion status to the preloaded FR lectures.
-  // The workbook uses column F ("DONE"). This is versioned so an earlier
-  // startup-before-preload attempt cannot block the corrected migration.
-  if(localStorage.getItem("fr-excel-completion-v2")==="1")return 0;
-  let changed=0;
+function applyAFMExcelCompletion(){
+  // Imported from the user's AFM workbook: column F is the Done field.
+  // v1 uses the exact lecture titles marked Done in that workbook.
+  if(localStorage.getItem("afm-excel-completion-v1")==="1")return 0;
+  const doneTitles=["1_1_Valuation of Securities","1_2_Valuation of Securities","2_1_Valuation of Securities","2_2_Valuation of Securities","3_1_Valuation of Securities","3_2_Valuation of Securities","4_1_Valuation of Securities","4_2_Valuation of Securities","5_1_Valuation of Securities","5_2_Valuation of Securities","6_1_Valuation of Securities","6_2_Valuation of Securities","7_1_Valuation of Securities","7_2_Valuation of Securities","8_1_Valuation of Securities","9_1_Valuation of Securities","9_2_Valuation of Securities","10_1_Valuation of Securities","10_2_Valuation of Securities","11_1_Valuation of Securities","11_2_Valuation of Securities","12_1_Valuation of Securities","13_1_Valuation of Securities","13_2_Valuation of Securities","14_1_Mergers","14_2_Mergers","15_1_Mergers","15_2_Mergers","16_1_Mergers","16_2_Mergers","17_1_Mergers","17_2_Mergers","18_1_Mergers","18_2_Mergers","19_1_Mergers","19_2_Mergers","20_1_Mergers","20_2_Mergers","21_1_Mergers","21_2_Mergers","22_1_Posrtfolio Management","22_2_Posrtfolio Management","23_1_Portfolio Management","23_2_Portfolio Management","24_1_Portfolio Management","24_2_Portfolio Management","25_1_Portfolio Management","25_2_Portfolio Management","26_1_Portfolio Management","26_2_Portfolio Management","27_1_Portfolio Management","27_2_Portfolio Management","28_1_Portfolio Management","28_2_Portfolio Management","29_1_Portfolio Management","30_1_Portfolio Management","30_2_Portfolio Management","31_1_Portfolio Management","31_2_Mutual Fund","32_0_Mutual Fund","32_1_Mutual Fund","32_2_Mutual Fund","32_3_Mutual Fund","33_1_Mutual Fund","33_2_Mutual Fund","34_1_Risk Management","34_2_Business Valuation","37_1_Adv Capital Budgeting","37_2_Adv Capital Budgeting","38_1_Adv Capital Budgeting","38_2_Adv Capital Budgeting","39_1_Adv Capital Budgeting","39_2_Adv Capital Budgeting","40_1_Adv Capital Budgeting","40_2_Adv Capital Budgeting","41_1_Adv Capital Budgeting","41_2_Forex","42_1_Forex","42_2_Forex","43_1_Forex","44_1_Forex","44_2_Forex","45_1_Forex","45_2_Forex","46_1_Forex","46_2_Forex","47_1_Forex","47_2_Forex","48_1_Forex","48_2_Forex","49_1_Forex","49_2_Forex","50_1_Forex","50_2_Forex","51_1_Forex","51_2_Forex","52_1_Forex","52_2_Forex","53_1_Forex","53_2_Forex","54_1_Forex","54_2_Forex","55_1_International Financial Management","55_2_International Financial Management","56_1_International Financial Management","56_2_International Financial Management","57_1_International Financial Management","57_2_International Financial Management","58_1_International Financial Management","58_2_International Financial Management","59_1_Derivatives","60_1_Derivatives","60_2_Derivatives","61_1_Derivatives","61_2_Derivatives","62_1_Derivatives","62_2_Derivatives","63_1_Derivatives","63_2_Derivatives","65_1_Derivatives","65_2_Derivatives","66_1_Derivatives","66_2_Derivatives","67_1_Derivatives","67_2_Derivatives","68_2_Derivatives"];
+  const norm=s=>String(s??"").replace(/[\\u00a0\\n\\r]+/g," ").replace(/\\s+/g," ").trim().toLowerCase();
+  const wanted=new Set(doneTitles.map(norm));
+  let changed=0,added=0;
   state.items.forEach(i=>{
-    if(i.subject!=="FR"||i.kind!=="lecture")return;
-    const t=String(i.title||"").trim();
-    const matches=[...t.matchAll(/(?:^|\s)(\d{1,3})_(\d{1,2}[a-z]?)(?:_|\s|$)/g)];
-    let done=false;
-    if(matches.length){
-      const m=matches[matches.length-1];
-      const day=Number(m[1]);
-      const part=m[2];
-      done=day<89||(day===89&&/^1/.test(part));
-    }
-    const n=t.toLowerCase().replace(/\s+/g," ").trim();
-    if(n==="26 share based payments")done=true;
-    if(n.includes("ind as 102_sbp")||
-       n.includes("sbp_ind as 102")||
-       n.includes("rtp may 2024 question 11")||
-       n.includes("uniform acc. policies_ca inter")||
-       n.includes("extra que_ q 49")||
-       n.includes("extra que_ q 50"))done=true;
-    if(done&&Number(i.progress||0)<100){i.progress=100;changed++}
+    if(i.subject!=="AFM"||i.kind!=="lecture")return;
+    if(wanted.has(norm(i.title))&&Number(i.progress||0)<100){i.progress=100;changed++}
   });
-  localStorage.setItem("fr-excel-completion-v2","1");
-  if(changed)save();
-  return changed;
+  // Some rows marked Done in the Excel are not present in the preloaded AFM JSON.
+  // Add those completed rows so the website reflects the workbook rather than silently dropping them.
+  doneTitles.forEach((title,idx)=>{
+    const exists=state.items.some(i=>i.subject==="AFM"&&i.kind==="lecture"&&norm(i.title)===norm(title));
+    if(exists)return;
+    const m=title.match(/^(\\d+)_(\\d+[a-z]?)/i);
+    state.items.push({id:"afm-sync-"+idx,subject:"AFM",kind:"lecture",no:m?m[1]:"",title,chapter:"",day:"",duration:0,progress:100,rev:{r1:0,r2:0,r3:0}});
+    added++;
+  });
+  localStorage.setItem("afm-excel-completion-v1","1");
+  if(changed||added)save();
+  return changed+added;
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -319,6 +313,7 @@ function bind(){
 
 window.itemModal=itemModal;window.toggleLecture=toggleLecture;window.editItem=editItem;window.resourceModal=resourceModal;window.toggleRev=toggleRev;window.openSubject=openSubject;window.uploadFor=uploadFor;window.completionSync=completionSync;window.exportData=exportData;window.resetTracker=resetTracker;
 applyFRExcelCompletion();
+applyAFMExcelCompletion();
 bind();
 render();
 
@@ -331,5 +326,5 @@ fetch("data/fr.json").then(r=>r.ok?r.json():[]).then(fr=>{
   if(!all)return;
   const rows=[];
   all.flat().forEach((r,i)=>rows.push({id:"pre-"+i,subject:r.subject,kind:"lecture",no:r.lectureNo,title:r.title,day:r.day||"",chapter:r.day||r.category||"",duration:Number(r.duration||0),category:r.category||"",concepts:r.raw||"",progress:0,rev:{r1:0,r2:0,r3:0}}));
-  state.items=rows;save();applyFRExcelCompletion();render();
+  state.items=rows;save();applyFRExcelCompletion();applyAFMExcelCompletion();render();
 }).catch(e=>console.warn("Lecture preload skipped",e));
