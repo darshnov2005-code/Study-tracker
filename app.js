@@ -133,10 +133,13 @@ function backlogItems(){
 function weakTopics(){return state.items.filter(i=>Number(i.questionPct||0)>0&&Number(i.questionPct||0)<70).sort((a,b)=>Number(a.questionPct)-Number(b.questionPct)).map(i=>({title:i.title,subject:i.subject,score:Number(i.questionPct||0)}))}
 function readinessScore(){
   const lecture=lectureItems().length?pct(lectureItems()):0;
-  const study=state.items.length?Math.round(state.items.reduce((n,i)=>n+studyProgress(i.subject),0)/state.subjects.length):0;
+  const activeSubjects=state.subjects.filter(s=>itemsFor(s.id).length);
+  const study=activeSubjects.length?Math.round(activeSubjects.reduce((n,s)=>n+studyProgress(s.id),0)/activeSubjects.length):0;
   const r1=revPct("r1"),r2=revPct("r2"),r3=revPct("r3");
-  const questions=state.items.filter(i=>i.questionPct>0).length?Math.round(state.items.reduce((n,i)=>n+Number(i.questionPct||0),0)/Math.max(1,state.items.filter(i=>i.questionPct>0).length)):0;
-  return Math.round(lecture*.3+study*.2+r1*.15+r2*.15+r3*.1+questions*.1)
+  const practiceItems=state.items.filter(i=>Number(i.questionPct||0)>0);
+  const questions=practiceItems.length?Math.round(practiceItems.reduce((n,i)=>n+Math.min(100,Number(i.questionPct||0)),0)/practiceItems.length):0;
+  const score=Math.round(lecture*.3+study*.2+r1*.15+r2*.15+r3*.1+questions*.1);
+  return Math.max(0,Math.min(100,score));
 }
 
 function dueRevisionItems(){
