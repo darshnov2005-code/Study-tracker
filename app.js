@@ -32,6 +32,34 @@ function normalize(s){
   s.items=s.items.map((x,i)=>({...x,id:x.id||("item-"+i),rev:{r1:0,r2:0,r3:0},...x,rev:{r1:0,r2:0,r3:0,...(x.rev||{})}}));
   return s;
 }
+function applyFRExcelCompletion(){
+  // User's FR workbook: column F is the completion field. Done rows are
+  // lectures 1_1 through 89_1, plus the completed non-numbered practice/RTP rows.
+  if(localStorage.getItem("fr-excel-completion-v1")==="1")return 0;
+  let changed=0;
+  state.items.forEach(i=>{
+    if(i.subject!=="FR"||i.kind!=="lecture")return;
+    const t=String(i.title||"");
+    const matches=[...t.matchAll(/(?:^|\\s)(\\d{1,3})_(\\d{1,2}[a-z]?)(?:_|\\s|$)/g)];
+    let done=false;
+    if(matches.length){
+      const m=matches[matches.length-1], day=Number(m[1]), part=m[2];
+      done=day<89||(day===89&&/^1/.test(part));
+    }else{
+      const n=t.toLowerCase();
+      done=n.includes("ind as 102_sbp")||
+           n.includes("sbp_ind as 102")||
+           n.includes("rtp may 2024 question 11")||
+           n.includes("uniform acc. policies_ca inter")||
+           n.includes("extra que_ q 49")||
+           n.includes("extra que_ q 50");
+    }
+    if(done&&Number(i.progress||0)<100){i.progress=100;changed++}
+  });
+  localStorage.setItem("fr-excel-completion-v1","1");
+  if(changed)save();
+  return changed;
+}
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function subject(id){return state.subjects.find(s=>s.id===id)}
@@ -287,6 +315,7 @@ function bind(){
 }
 
 window.itemModal=itemModal;window.toggleLecture=toggleLecture;window.editItem=editItem;window.resourceModal=resourceModal;window.toggleRev=toggleRev;window.openSubject=openSubject;window.uploadFor=uploadFor;window.completionSync=completionSync;window.exportData=exportData;window.resetTracker=resetTracker;
+applyFRExcelCompletion();
 bind();
 render();
 
