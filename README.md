@@ -31,3 +31,13 @@ For Audit, the source contains serial number, lecture name, duration, category a
 
 ## Deploy
 Static site. Deploy the repository to Vercel or GitHub Pages. No build command is required.
+
+
+## Preloaded data
+The repository now includes preloaded lecture data extracted from the FR Batch 9, AFM Batch 9 and Audit B56 lecture sheets supplied in this project. The app loads these automatically on first launch. You can still import updated PDFs/Excels later.
+
+## Planner
+Set your lecture-completion, R1, R2, R3 and exam dates under Settings. Planner then calculates remaining lecture hours and the approximate lecture hours/day needed to hit the lecture target.
+
+## Direct upload
+Import Centre now has a direct **Upload PDF / Excel** button on each lecture-based subject, so you do not need to first select the subject and then look for a file picker.
