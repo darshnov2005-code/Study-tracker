@@ -116,7 +116,7 @@ function excelDuration(v){
   return seconds(v);
 }
 function normText(v){
-  return String(v??"").toLowerCase().replace(/[\\u00a0]/g," ").replace(/[_\\-]+/g," ").replace(/\\s+/g," ").trim();
+  return String(v??"").toLowerCase().replace(/[\u00a0]/g," ").replace(/[_-]+/g," ").replace(/\s+/g," ").trim();
 }
 function findHeaderRow(a){
   for(let r=0;r<Math.min(a.length,12);r++){
