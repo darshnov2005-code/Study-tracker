@@ -119,36 +119,58 @@ function normText(v){
   return String(v??"").toLowerCase().replace(/[\u00a0]/g," ").replace(/[_-]+/g," ").replace(/\s+/g," ").trim();
 }
 function findHeaderRow(a){
-  for(let r=0;r<Math.min(a.length,12);r++){
-    const h=a[r].map(x=>normText(x));
-    if(h.some(x=>x.includes("lectures")||x.includes("lecture title")||x.includes("lecture name")) &&
-       h.some(x=>x.includes("sr no")||x==="no"||x.includes("lecture no")||x.includes("days"))) return r;
+  // Excel exports often have title/instruction rows above the real table header.
+  // Look for the strongest lecture-table signature in the first 20 rows.
+  let bestRow=0,bestScore=-1;
+  for(let r=0;r<Math.min(a.length,20);r++){
+    const h=(a[r]||[]).map(x=>normText(x));
+    if(!h.length)continue;
+    let score=0;
+    if(h.some(x=>x==="lectures"||x.includes("lecture title")||x.includes("lecture name")))score+=5;
+    if(h.some(x=>x==="sr no"||x.includes("sr no")||x.includes("lecture no")||x==="no"||x.includes("lecture number")))score+=3;
+    if(h.some(x=>x.includes("duration")||x.includes("time")||x.includes("length")))score+=2;
+    if(h.some(x=>x==="done"||x.includes("completed")||x.includes("complete")||x.includes("status")||x.includes("progress")))score+=2;
+    if(h.some(x=>x.includes("day")))score+=1;
+    if(score>bestScore){bestScore=score;bestRow=r}
   }
-  return 0;
+  return bestScore>=5?bestRow:0;
 }
 function detectColumns(a,hr){
-  const h=a[hr].map(x=>normText(x));
+  const h=(a[hr]||[]).map(x=>normText(x));
   const find=names=>h.findIndex(x=>names.some(n=>x===n||x.includes(n)));
   const title=find(["lectures","lecture title","lecture name","topic","title"]);
   const no=find(["sr no","lecture no","lecture number","no"]);
   const dur=find(["duration","time","length"]);
-  let done=find(["done","status","completed","complete"]);
+  const progress=find(["progress","completion","% complete","percent complete"]);
+  let done=find(["done","status","completed","complete","watched"]);
   if(done<0){
+    // Some of the user's files have an unlabelled Done column. Find the
+    // column containing the highest number of recognisable completion values.
     let best=-1,bestCount=0;
     for(let col=0;col<(a[hr]?.length||0);col++){
       let count=0;
-      for(let r=hr+1;r<a.length;r++)if(/^(done|completed|complete|yes|true|1)$/i.test(String(a[r][col]??"").trim()))count++;
+      for(let r=hr+1;r<a.length;r++){
+        const v=String(a[r]?.[col]??"").trim().toLowerCase();
+        if(/^(done|completed|complete|yes|y|true|1|✓|✔|☑|finished|watched)$/i.test(v)||v==="100%"||v==="100")count++;
+      }
       if(count>bestCount){bestCount=count;best=col}
     }
     if(bestCount>0)done=best;
   }
-  return {title,no,dur,done};
+  return {title,no,dur,done,progress};
+}
+function completionValue(v){
+  const raw=String(v??"").trim().toLowerCase();
+  if(!raw)return false;
+  if(/^(done|completed|complete|yes|y|true|1|✓|✔|☑|finished|watched)$/i.test(raw))return true;
+  if(raw==="100%"||raw==="100")return true;
+  return false;
 }
 function completionSync(subjectId){
   const allowed=subjectId?subject(subjectId)?.code:"FR / AFM";
   const m=document.createElement("div");m.className="modalbg";
   m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>Sync Completed Lectures</h2><button class="close">×</button></div>'+
-    '<p class="muted">Upload the '+esc(allowed||"FR / AFM")+' Excel. The tracker will detect the header row, Lectures column and Done column automatically.</p>'+
+    '<p class="muted">Upload the '+esc(allowed||"FR / AFM")+' Excel. The tracker will detect the lecture column and completion column automatically.</p>'+
     '<label class="file">Choose Excel / CSV<input id="syncFile" type="file" accept=".xlsx,.xls,.csv" hidden></label>'+
     '<div id="syncMsg" style="margin-top:14px"></div><div class="actions"><button class="ghost" id="cancel">Cancel</button></div></div>';
   document.getElementById("modal").appendChild(m);
@@ -159,22 +181,38 @@ function completionSync(subjectId){
 async function syncExcel(file,m,subjectId){
   if(typeof XLSX==="undefined"){m.querySelector("#syncMsg").innerHTML='<p>Excel reader is unavailable. Please reload the page.</p>';return}
   try{
-    const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true});
+    const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true,raw:true});
     const incoming=[];
+    const diagnostics=[];
     wb.SheetNames.forEach(sn=>{
       const a=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:"",raw:true});
       if(!a.length)return;
       const hr=findHeaderRow(a), cols=detectColumns(a,hr);
-      if(cols.title<0)return;
+      if(cols.title<0){diagnostics.push(sn+": lecture column not found");return}
+      let sheetRows=0,sheetDone=0;
       for(let r=hr+1;r<a.length;r++){
-        const title=String(a[r][cols.title]??"").trim();
+        const title=String(a[r]?.[cols.title]??"").trim();
         if(!title||/^(lectures|total|grand total)$/i.test(title))continue;
-        const rawDone=cols.done>=0?String(a[r][cols.done]??"").trim():"";
-        const isDone=/^(done|completed|complete|yes|true|1)$/i.test(rawDone);
-        incoming.push({sheet:sn,title,no:cols.no>=0?String(a[r][cols.no]??"").trim():"",duration:cols.dur>=0?excelDuration(a[r][cols.dur]):0,isDone});
+        sheetRows++;
+        const rawDone=cols.done>=0?a[r]?.[cols.done]:"";
+        let isDone=completionValue(rawDone);
+        // If no explicit Done value exists, accept a 100% progress/completion column.
+        if(!isDone&&cols.progress>=0)isDone=completionValue(a[r]?.[cols.progress]);
+        if(isDone)sheetDone++;
+        incoming.push({
+          sheet:sn,
+          title,
+          no:cols.no>=0?String(a[r]?.[cols.no]??"").trim():"",
+          duration:cols.dur>=0?excelDuration(a[r]?.[cols.dur]):0,
+          isDone
+        });
       }
+      diagnostics.push(sn+": "+sheetRows+" lecture rows, "+sheetDone+" completed");
     });
-    if(!incoming.length){m.querySelector("#syncMsg").innerHTML='<p>No lecture rows were detected. Please check that the workbook contains a <b>Lectures</b> column.</p>';return}
+    if(!incoming.length){
+      m.querySelector("#syncMsg").innerHTML='<p>No lecture rows were detected.</p><p class="muted">'+esc(diagnostics.join(" • "))+'</p>';
+      return;
+    }
     const targetSubjects=subjectId?[subjectId]:["FR","AFM"];
     const existing=lectureItems().filter(i=>targetSubjects.includes(i.subject));
     const matched=[],added=[];
@@ -182,9 +220,8 @@ async function syncExcel(file,m,subjectId){
       if(!r.isDone)return;
       const nt=normText(r.title);
       let best=existing.find(i=>normText(i.title)===nt);
-      if(!best && r.no)best=existing.find(i=>String(i.no||"").trim()===r.no&&targetSubjects.includes(i.subject));
+      if(!best&&r.no)best=existing.find(i=>String(i.no||"").trim()===r.no&&targetSubjects.includes(i.subject));
       if(best){matched.push(best);return}
-      // If the workbook contains a lecture not present in the preloaded data, add it so the sync is complete.
       const sid=subjectId||(/afm/i.test(r.sheet)||/advanced financial/i.test(r.title)?"AFM":"FR");
       if(targetSubjects.includes(sid)){
         const x={id:"sync-"+Date.now()+"-"+added.length,subject:sid,kind:"lecture",no:r.no,title:r.title,chapter:"",day:"",duration:Number(r.duration||0),progress:100,rev:{r1:0,r2:0,r3:0}};
@@ -192,9 +229,13 @@ async function syncExcel(file,m,subjectId){
       }
     });
     const unique=[...new Set(matched)];
+    const doneCount=incoming.filter(x=>x.isDone).length;
     const before=unique.filter(i=>Number(i.progress||0)>=100).length;
-    m.querySelector("#syncMsg").innerHTML='<div class="syncsummary"><div><b>'+unique.length+'</b><span>matched existing</span></div><div><b>'+added.length+'</b><span>new lectures added</span></div><div><b>'+incoming.filter(x=>x.isDone).length+'</b><span>Done rows found</span></div></div><p>'+before+' were already complete. Click below to apply the '+(unique.length+added.length)+' completed lectures.</p><button class="primary" id="apply">Apply Sync</button>';
-    m.querySelector("#apply").onclick=()=>{
+    let warning="";
+    if(doneCount===0)warning='<p><b>No completed rows were detected.</b> If your Excel uses clickable/form checkboxes, those controls may not be stored as cell values. Use Done/Yes/TRUE/1 or 100% in the cells, then upload again.</p>';
+    m.querySelector("#syncMsg").innerHTML='<div class="syncsummary"><div><b>'+unique.length+'</b><span>matched existing</span></div><div><b>'+added.length+'</b><span>new lectures added</span></div><div><b>'+doneCount+'</b><span>completed rows found</span></div></div><p class="muted">'+esc(diagnostics.join(" • "))+'</p>'+warning+(doneCount>0?'<p>'+before+' were already complete. Click below to apply the '+(unique.length+added.length)+' completed lectures.</p><button class="primary" id="apply">Apply Sync</button>':"");
+    const apply=m.querySelector("#apply");
+    if(apply)apply.onclick=()=>{
       unique.forEach(i=>i.progress=100);
       save();m.remove();toast((unique.length+added.length)+" lectures synced as complete");render();
     };
