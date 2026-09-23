@@ -33,30 +33,33 @@ function normalize(s){
   return s;
 }
 function applyFRExcelCompletion(){
-  // User's FR workbook: column F is the completion field. Done rows are
-  // lectures 1_1 through 89_1, plus the completed non-numbered practice/RTP rows.
-  if(localStorage.getItem("fr-excel-completion-v1")==="1")return 0;
+  // Apply the user's uploaded FR Excel completion status to the preloaded FR lectures.
+  // The workbook uses column F ("DONE"). This is versioned so an earlier
+  // startup-before-preload attempt cannot block the corrected migration.
+  if(localStorage.getItem("fr-excel-completion-v2")==="1")return 0;
   let changed=0;
   state.items.forEach(i=>{
     if(i.subject!=="FR"||i.kind!=="lecture")return;
-    const t=String(i.title||"");
-    const matches=[...t.matchAll(/(?:^|\\s)(\\d{1,3})_(\\d{1,2}[a-z]?)(?:_|\\s|$)/g)];
+    const t=String(i.title||"").trim();
+    const matches=[...t.matchAll(/(?:^|\s)(\d{1,3})_(\d{1,2}[a-z]?)(?:_|\s|$)/g)];
     let done=false;
     if(matches.length){
-      const m=matches[matches.length-1], day=Number(m[1]), part=m[2];
+      const m=matches[matches.length-1];
+      const day=Number(m[1]);
+      const part=m[2];
       done=day<89||(day===89&&/^1/.test(part));
-    }else{
-      const n=t.toLowerCase();
-      done=n.includes("ind as 102_sbp")||
-           n.includes("sbp_ind as 102")||
-           n.includes("rtp may 2024 question 11")||
-           n.includes("uniform acc. policies_ca inter")||
-           n.includes("extra que_ q 49")||
-           n.includes("extra que_ q 50");
     }
+    const n=t.toLowerCase().replace(/\s+/g," ").trim();
+    if(n==="26 share based payments")done=true;
+    if(n.includes("ind as 102_sbp")||
+       n.includes("sbp_ind as 102")||
+       n.includes("rtp may 2024 question 11")||
+       n.includes("uniform acc. policies_ca inter")||
+       n.includes("extra que_ q 49")||
+       n.includes("extra que_ q 50"))done=true;
     if(done&&Number(i.progress||0)<100){i.progress=100;changed++}
   });
-  localStorage.setItem("fr-excel-completion-v1","1");
+  localStorage.setItem("fr-excel-completion-v2","1");
   if(changed)save();
   return changed;
 }
@@ -328,5 +331,5 @@ fetch("data/fr.json").then(r=>r.ok?r.json():[]).then(fr=>{
   if(!all)return;
   const rows=[];
   all.flat().forEach((r,i)=>rows.push({id:"pre-"+i,subject:r.subject,kind:"lecture",no:r.lectureNo,title:r.title,day:r.day||"",chapter:r.day||r.category||"",duration:Number(r.duration||0),category:r.category||"",concepts:r.raw||"",progress:0,rev:{r1:0,r2:0,r3:0}}));
-  state.items=rows;save();render();
+  state.items=rows;save();applyFRExcelCompletion();render();
 }).catch(e=>console.warn("Lecture preload skipped",e));
