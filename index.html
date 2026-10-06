@@ -3,12 +3,12 @@
 <script>
 (function(){
   try{
-    var dark = localStorage.getItem("ca-final-theme")==="dark";
-    if(dark) document.documentElement.classList.add("dark-pending");
+    if(localStorage.getItem("ca-final-theme")==="dark")
+      document.documentElement.classList.add("dark-pending");
   }catch(e){}
 })();
 </script>
-<style>html.dark-pending body,html.dark-pending{background:#0f1419;color:#e8eef7}</style>
+<style>html.dark-pending,html.dark-pending body{background:#0f1419;color:#e8eef7}</style>
 </head>
 <body>
 <div id="app">
@@ -41,4 +41,5 @@
 <script src="app.js"></script>
 <script src="app-timer.js"></script>
 <script src="app-hours.js"></script>
+<script src="app-theme.js"></script>
 </body></html>
