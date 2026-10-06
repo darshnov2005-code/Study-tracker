@@ -1,4 +1,4 @@
-/* Features: SM-2 revisions, milestones, reset subject, color bars, study columns */
+/* Features: SM-2 revisions, subject-wise milestones, reset subject, color bars, study columns */
 (function(){
 
   function barClass(p){
@@ -127,39 +127,93 @@
     });
   };
 
-  function milestonesData(){
+  function subjectRevPct(sid, r){
+    const a = state.items.filter(i=>i.subject===sid && i.rev);
+    if(!a.length) return 0;
+    return Math.round(a.reduce((n,i)=>n+Number(i.rev?.[r]||0),0)/a.length);
+  }
+  function subjectLecPct(sid){
+    const a = state.items.filter(i=>i.subject===sid && i.kind==="lecture");
+    if(!a.length){
+      return typeof studyProgress==="function" ? studyProgress(sid) : 0;
+    }
+    return pct(a);
+  }
+  function subjectTargets(sid){
+    const st = (state.settings.subjectTargets||{})[sid] || {};
+    return {
+      lectureTarget: st.lectureTarget || state.settings.lectureTarget,
+      r1Target: st.r1Target || state.settings.r1Target,
+      r2Target: st.r2Target || state.settings.r2Target,
+      r3Target: st.r3Target || state.settings.r3Target
+    };
+  }
+  function milestonesDataForSubject(sid){
+    const t = subjectTargets(sid);
     const exam = state.settings.examDate || "2027-11-01";
-    const examDays = daysUntil(exam);
-    const ls = lectureItems();
-    const lecPct = pct(ls);
-    const r1 = revPct("r1"), r2 = revPct("r2"), r3 = revPct("r3");
     return [
-      { id: "lec", label: "Lectures finish", target: state.settings.lectureTarget, progress: lecPct, daysLeft: daysUntil(state.settings.lectureTarget) },
-      { id: "r1", label: "R1 complete", target: state.settings.r1Target, progress: r1, daysLeft: daysUntil(state.settings.r1Target) },
-      { id: "r2", label: "R2 complete", target: state.settings.r2Target, progress: r2, daysLeft: daysUntil(state.settings.r2Target) },
-      { id: "r3", label: "R3 complete", target: state.settings.r3Target, progress: r3, daysLeft: daysUntil(state.settings.r3Target) },
-      { id: "exam", label: "Exam", target: exam, progress: null, daysLeft: examDays }
+      { id: "lec", label: "Lectures", target: t.lectureTarget, progress: subjectLecPct(sid), daysLeft: daysUntil(t.lectureTarget) },
+      { id: "r1", label: "R1", target: t.r1Target, progress: subjectRevPct(sid,"r1"), daysLeft: daysUntil(t.r1Target) },
+      { id: "r2", label: "R2", target: t.r2Target, progress: subjectRevPct(sid,"r2"), daysLeft: daysUntil(t.r2Target) },
+      { id: "r3", label: "R3", target: t.r3Target, progress: subjectRevPct(sid,"r3"), daysLeft: daysUntil(t.r3Target) },
+      { id: "exam", label: "Exam", target: exam, progress: null, daysLeft: daysUntil(exam) }
     ];
   }
-  function milestonesHtml(){
-    const rows = milestonesData();
-    let h = '<div class="section"><div><h2>Exam milestones</h2><p>Targets from Settings · progress toward each.</p></div><button class="ghost" onclick="setView(\'settings\')">Edit targets</button></div>';
-    h += '<div class="card pad"><div class="list">';
-    rows.forEach(m=>{
-      const dateStr = m.target ? fmtDate(m.target) : "—";
-      const days = m.daysLeft == null ? "—" : (m.daysLeft < 0 ? Math.abs(m.daysLeft)+"d overdue" : m.daysLeft+"d left");
-      const overdue = m.daysLeft != null && m.daysLeft < 0;
-      const done = m.progress != null && m.progress >= 100;
-      h += '<div class="item milestone-row"><div style="flex:1">';
-      h += '<b>'+esc(m.label)+'</b><small>'+dateStr+' · <span class="'+(overdue?"tag due":"muted")+'">'+days+'</span></small>';
-      if(m.progress != null){
-        h += progressBarHtml(m.progress)+'<small>'+m.progress+'%'+(done?" · done":"")+'</small>';
-      }
-      h += '</div></div>';
-    });
+  function milestoneRowHtml(m){
+    const dateStr = m.target ? fmtDate(m.target) : "—";
+    const days = m.daysLeft == null ? "—" : (m.daysLeft < 0 ? Math.abs(m.daysLeft)+"d overdue" : m.daysLeft+"d left");
+    const overdue = m.daysLeft != null && m.daysLeft < 0;
+    const done = m.progress != null && m.progress >= 100;
+    let h = '<div class="item milestone-row"><div style="flex:1">';
+    h += '<b>'+esc(m.label)+'</b><small>'+dateStr+' · <span class="'+(overdue?"tag due":"muted")+'">'+days+'</span></small>';
+    if(m.progress != null){
+      h += progressBarHtml(m.progress)+'<small>'+m.progress+'%'+(done?" · done":"")+'</small>';
+    }
     h += '</div></div>';
     return h;
   }
+  function milestonesHtml(){
+    const exam = state.settings.examDate || "2027-11-01";
+    let h = '<div class="section"><div><h2>Exam milestones</h2><p>Subject-wise progress vs targets (Settings). Shared exam date: <b>'+fmtDate(exam)+'</b>.</p></div><button class="ghost" onclick="setView(\'settings\')">Edit targets</button></div>';
+
+    const active = window._milestoneSub || state.subjects[0]?.id || "FR";
+    window._milestoneSub = active;
+    h += '<div class="chip-row" style="margin-bottom:12px">';
+    state.subjects.forEach(s=>{
+      h += '<button class="chip '+(s.id===active?"active":"")+'" onclick="setMilestoneSub(\''+s.id+'\')">'+esc(s.code)+'</button>';
+    });
+    h += '<button class="chip '+(active==="ALL"?"active":"")+'" onclick="setMilestoneSub(\'ALL\')">All</button>';
+    h += '</div>';
+
+    if(active === "ALL"){
+      h += '<div class="grid subjects">';
+      state.subjects.forEach(s=>{
+        const rows = milestonesDataForSubject(s.id);
+        const lec = rows.find(r=>r.id==="lec");
+        const r1 = rows.find(r=>r.id==="r1");
+        const r2 = rows.find(r=>r.id==="r2");
+        const r3 = rows.find(r=>r.id==="r3");
+        h += '<div class="card pad subject"><div class="code">'+esc(s.code)+'</div><h3 style="margin:4px 0">'+esc(s.name)+'</h3>';
+        h += '<div class="mini-label"><span>Lectures</span><b>'+(lec?lec.progress:0)+'%</b></div>'+progressBarHtml(lec?lec.progress:0);
+        h += '<div class="mini-label"><span>R1</span><b>'+(r1?r1.progress:0)+'%</b></div>'+progressBarHtml(r1?r1.progress:0);
+        h += '<div class="mini-label"><span>R2 / R3</span><b>'+(r2?r2.progress:0)+'% / '+(r3?r3.progress:0)+'%</b></div>';
+        h += '<button class="ghost full" style="margin-top:8px" onclick="setMilestoneSub(\''+s.id+'\')">Details</button></div>';
+      });
+      h += '</div>';
+    } else {
+      const s = subject(active);
+      const rows = milestonesDataForSubject(active);
+      h += '<div class="card pad"><div class="section compact"><div><h3 style="margin:0">'+(s?esc(s.code)+" — "+esc(s.name):active)+'</h3><p class="muted">Lectures, revisions & exam for this paper</p></div></div>';
+      h += '<div class="list">';
+      rows.forEach(m=>{ h += milestoneRowHtml(m); });
+      h += '</div></div>';
+    }
+    return h;
+  }
+  window.setMilestoneSub = function(sid){
+    window._milestoneSub = sid;
+    render();
+  };
 
   window.resetSubjectProgress = function(sid){
     const s = subject(sid);
