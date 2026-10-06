@@ -1,4 +1,3 @@
-
 function hoursByDay(){
   const map={};
   state.studyLog.forEach(x=>{
@@ -102,3 +101,27 @@ function openLog(){
     save();m.remove();render();toast("Logged "+hrs+"h");
   };
 }
+
+function bind(){
+  document.querySelectorAll(".nav").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
+  const q=document.getElementById("quick"); if(q) q.onclick=()=>quickAdd();
+  const backup=document.getElementById("backup"); if(backup) backup.onclick=exportData;
+}
+window.itemModal=itemModal;
+window.toggleLecture=toggleLecture;
+window.editItem=editItem;
+window.resourceModal=resourceModal;
+window.toggleRev=toggleRev;
+window.openSubject=openSubject;
+window.completionSync=completionSync;
+window.exportData=exportData;
+window.openLog=openLog;
+window.saveHoursForm=saveHoursForm;
+window.deleteLog=deleteLog;
+window.showDayDetail=showDayDetail;
+window.setView=setView;
+window.quickAdd=quickAdd;
+window.saveTargets=saveTargets;
+window.editItemByTitle=editItemByTitle;
+bind();
+render();
