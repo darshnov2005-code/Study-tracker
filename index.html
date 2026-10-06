@@ -1,6 +1,17 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CA Final Study Tracker — Nov 2027</title><link rel="stylesheet" href="styles.css"></head>
-<body><div id="app">
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CA Final Study Tracker — Nov 2027</title><link rel="stylesheet" href="styles.css">
+<script>
+(function(){
+  try{
+    var dark = localStorage.getItem("ca-final-theme")==="dark";
+    if(dark) document.documentElement.classList.add("dark-pending");
+  }catch(e){}
+})();
+</script>
+<style>html.dark-pending body,html.dark-pending{background:#0f1419;color:#e8eef7}</style>
+</head>
+<body>
+<div id="app">
 <aside class="sidebar"><div class="brand"><div class="brand-mark">CA</div><div><b>Final 2027</b><small>Study Tracker</small></div></div>
 <nav>
 <button class="nav active" data-view="dashboard">⌂ Dashboard</button>
@@ -14,7 +25,17 @@
 <button class="nav" data-view="settings">⚙ Settings</button>
 </nav>
 <div class="side-bottom"><b>NOV 2027</b><button id="backup">Export Backup</button></div></aside>
-<main><header><div><small>CA FINAL</small><h1 id="title">Dashboard</h1></div><button id="quick">+ Add Study</button></header><section id="content"></section></main></div>
+<main>
+<header>
+  <div><small>CA FINAL</small><h1 id="title">Dashboard</h1></div>
+  <div class="header-actions">
+    <button type="button" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">◐</button>
+    <button id="quick">+ Add Study</button>
+  </div>
+</header>
+<section id="content"></section>
+</main>
+</div>
 <div id="modal"></div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="app.js"></script>
