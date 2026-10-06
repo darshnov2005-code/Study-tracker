@@ -107,6 +107,17 @@ function bind(){
   const q=document.getElementById("quick"); if(q) q.onclick=()=>quickAdd();
   const backup=document.getElementById("backup"); if(backup) backup.onclick=exportData;
 }
+function render(){
+  const title=document.getElementById("title"), content=document.getElementById("content");
+  if(!title||!content) return;
+  title.textContent={dashboard:"Dashboard",study:"Study",subjects:"Subjects",revisions:"Revisions",hours:"Study Hours",resources:"Resources",planner:"Planner",settings:"Settings"}[view]||"Dashboard";
+  try{
+    ({dashboard,study,subjects,revisions,hours,resources,planner,settings}[view]||dashboard)();
+  }catch(e){
+    console.error(e);
+    content.innerHTML='<div class="card pad"><h2>Something went wrong</h2><p class="muted">'+esc(e.message)+'</p></div>';
+  }
+}
 window.itemModal=itemModal;
 window.toggleLecture=toggleLecture;
 window.editItem=editItem;
