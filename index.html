@@ -1,17 +1,58 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CA Final Study Tracker — Nov 2027</title><link rel="stylesheet" href="styles.css"></head>
-<body><div id="app">
-<aside class="sidebar"><div class="brand"><div class="brand-mark">CA</div><div><b>Final 2027</b><small>Study Tracker</small></div></div>
-<nav>
-<button class="nav active" data-view="dashboard">⌂ Dashboard</button>
-<button class="nav" data-view="study">✓ Study</button>
-<button class="nav" data-view="subjects">▦ Subjects</button>
-<button class="nav" data-view="revisions">↻ Revisions</button>
-<button class="nav" data-view="resources">🔗 Resources</button>
-<button class="nav" data-view="planner">▣ Planner</button>
-<button class="nav" data-view="settings">⚙ Settings</button>
-</nav>
-<div class="side-bottom"><b>NOV 2027</b><button id="backup">Export Backup</button></div></aside>
-<main><header><div><small>CA FINAL</small><h1 id="title">Dashboard</h1></div><button id="quick">+ Add Study</button></header><section id="content"></section></main></div>
-<div id="modal"></div>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="app.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CA Final Study Tracker — Nov 2027</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <button id="menuBtn" class="menu-btn" aria-label="Menu">☰</button>
+    <div id="overlay" class="overlay"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">CA</div>
+        <div><b>Final 2027</b><small>Study Tracker</small></div>
+      </div>
+      <nav>
+        <button class="nav active" data-view="dashboard">⌂ Dashboard</button>
+        <button class="nav" data-view="study">✓ Study</button>
+        <button class="nav" data-view="subjects">▦ Subjects</button>
+        <button class="nav" data-view="revisions">↻ Revisions</button>
+        <button class="nav" data-view="questions">✎ Questions</button>
+        <button class="nav" data-view="resources">🔗 Resources</button>
+        <button class="nav" data-view="planner">▣ Planner</button>
+        <button class="nav" data-view="settings">⚙ Settings</button>
+      </nav>
+      <div class="side-bottom">
+        <div class="timer-widget" id="timerWidget">
+          <span id="timerDisplay">00:00:00</span>
+          <button id="timerToggle" class="ghost-sm">Start</button>
+        </div>
+        <b>NOV 2027</b>
+        <button id="backup">Export Backup</button>
+        <button id="printSheet" class="ghost-sm">Print week sheet</button>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <small>CA FINAL</small>
+          <h1 id="title">Dashboard</h1>
+        </div>
+        <div class="header-actions">
+          <button id="themeToggle" class="ghost" title="Toggle dark mode">◐</button>
+          <button id="quick" class="primary">+ Add Study</button>
+        </div>
+      </header>
+      <section id="content"></section>
+    </main>
+  </div>
+  <div id="modal"></div>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
