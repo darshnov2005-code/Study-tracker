@@ -25,7 +25,7 @@ function hours(){
   const totalAll=state.studyLog.reduce((n,x)=>n+Number(x.hours||0),0);
   const todayH=state.studyLog.filter(x=>x.date===iso(today())).reduce((n,x)=>n+Number(x.hours||0),0);
   const maxWeek=Math.max(target,...week.map(d=>d.hours),0.1);
-  let html='<div class="section"><div><h2>Study hours</h2><p>Log sessions and track day-wise totals.</p></div><button class="primary" onclick="openLog()">+ Log hours</button></div>';
+  let html='<div class="section"><div><h2>Study hours</h2><p>Log sessions and track day-wise totals. Edit any session if you logged wrongly.</p></div><button class="primary" onclick="openLog()">+ Log hours</button></div>';
   html+='<div class="grid stats">'+stat("Today",todayH.toFixed(1)+"h","Target "+target+"h")+stat("This week",week.reduce((n,d)=>n+d.hours,0).toFixed(1)+"h","Last 7 days")+stat("All time",totalAll.toFixed(1)+"h",state.studyLog.length+" sessions")+stat("Days logged",String(byDay.length),"With sessions")+'</div>';
   html+='<div class="section"><div><h2>This week</h2><p>Daily hours vs '+target+'h target.</p></div></div>';
   html+='<div class="card pad"><div class="week-bars">';
@@ -39,13 +39,13 @@ function hours(){
   html+='<div class="card pad"><div class="mapping">';
   html+='<div class="field"><label>Date</label><input class="input" id="hDate" type="date" value="'+iso(today())+'"></div>';
   html+='<div class="field"><label>Subject</label><select class="select" id="hSub">'+state.subjects.map(s=>'<option value="'+s.id+'">'+s.code+" — "+esc(s.name)+"</option>").join("")+'</select></div>';
-  html+='<div class="field"><label>Type</label><select class="select" id="hType"><option>Study</option><option>Lecture</option><option>Questions</option><option>Revision</option><option>Notes</option></select></div>';
+  html+='<div class="field"><label>Type</label><select class="select" id="hType"><option>Study</option><option>Lecture</option><option>Questions</option><option>Revision</option><option>Notes</option><option>Pomodoro</option></select></div>';
   html+='<div class="field"><label>Hours</label><input class="input" id="hHrs" type="number" min="0.1" step="0.25" value="1"></div>';
   html+='<div class="field fullfield"><label>Topic / notes</label><input class="input" id="hTitle" placeholder="What did you study?"></div>';
   html+='</div><div class="actions"><button class="primary" onclick="saveHoursForm()">Save session</button></div></div>';
-  html+='<div class="section"><div><h2>Day-wise totals</h2><p>Click Details to see sessions that day.</p></div></div>';
+  html+='<div class="section"><div><h2>Day-wise totals</h2><p>Click Details to see / edit sessions that day.</p></div></div>';
   if(!byDay.length){
-    html+='<div class="card pad"><div class="empty">No hours logged yet. Use the form above.</div></div>';
+    html+='<div class="card pad"><div class="empty">No hours logged yet. Use the form above or the Timer.</div></div>';
   } else {
     html+='<div class="card"><div class="tablewrap"><table class="table"><thead><tr><th>Date</th><th>Hours</th><th>vs target</th><th>Sessions</th><th></th></tr></thead><tbody>';
     byDay.forEach(d=>{
@@ -55,12 +55,12 @@ function hours(){
     });
     html+="</tbody></table></div></div>";
   }
-  const recent=[...state.studyLog].sort((a,b)=>(b.date+(b.time||"")).localeCompare(a.date+(a.time||""))).slice(0,15);
-  html+='<div class="section"><div><h2>Recent sessions</h2></div></div><div class="list">';
+  const recent=[...state.studyLog].sort((a,b)=>(b.date+(b.time||"")).localeCompare(a.date+(a.time||""))).slice(0,20);
+  html+='<div class="section"><div><h2>Recent sessions</h2><p>Edit or delete if you logged the wrong time.</p></div></div><div class="list">';
   if(!recent.length) html+='<div class="card pad"><div class="empty">No sessions yet</div></div>';
   recent.forEach(x=>{
     html+='<div class="item"><div><b>'+esc(subject(x.subject)?.code||x.subject||"Study")+" • "+esc(x.title||"Session")+"</b><small>"+fmtDate(x.date)+" "+(x.time||"")+" • "+esc(x.type||"Study")+"</small></div>";
-    html+='<div style="display:flex;gap:8px;align-items:center"><b>'+Number(x.hours||0).toFixed(2)+'h</b><button class="ghost" data-id="'+esc(x.id)+'" onclick="deleteLog(this.dataset.id)">Delete</button></div></div>';
+    html+='<div style="display:flex;gap:8px;align-items:center"><b>'+Number(x.hours||0).toFixed(2)+'h</b><button class="ghost" data-id="'+esc(x.id)+'" onclick="editLog(this.dataset.id)">Edit</button><button class="ghost" data-id="'+esc(x.id)+'" onclick="deleteLog(this.dataset.id)">Delete</button></div></div>';
   });
   html+="</div>";
   document.getElementById("content").innerHTML=html;
@@ -82,15 +82,44 @@ function showDayDetail(date){
   const total=sessions.reduce((n,x)=>n+Number(x.hours||0),0);
   const m=document.createElement("div");
   m.className="modalbg";
-  const body=sessions.map(x=>'<div class="item"><div><b>'+esc(subject(x.subject)?.code||"")+" • "+esc(x.title||"")+"</b><small>"+esc(x.type||"")+" • "+(x.time||"")+'</small></div><div style="display:flex;gap:8px;align-items:center"><b>'+Number(x.hours||0).toFixed(2)+'h</b><button class="ghost" data-id="'+esc(x.id)+'" onclick="deleteLog(this.dataset.id);document.querySelector(\'.modalbg\')?.remove()">×</button></div></div>').join("")||'<div class="empty">No sessions</div>';
+  const body=sessions.map(x=>'<div class="item"><div><b>'+esc(subject(x.subject)?.code||"")+" • "+esc(x.title||"")+"</b><small>"+esc(x.type||"")+" • "+(x.time||"")+'</small></div><div style="display:flex;gap:8px;align-items:center"><b>'+Number(x.hours||0).toFixed(2)+'h</b><button class="ghost" data-id="'+esc(x.id)+'" onclick="document.querySelector(\'.modalbg\')?.remove();editLog(this.dataset.id)">Edit</button><button class="ghost" data-id="'+esc(x.id)+'" onclick="deleteLog(this.dataset.id);document.querySelector(\'.modalbg\')?.remove()">×</button></div></div>').join("")||'<div class="empty">No sessions</div>';
   m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>'+fmtDate(date)+" — "+total.toFixed(2)+'h</h2><button class="close">×</button></div><div class="list">'+body+"</div></div>";
   document.getElementById("modal").appendChild(m);
   m.querySelector(".close").onclick=()=>m.remove();
 }
 
+function editLog(id){
+  const x = state.studyLog.find(l=>l.id===id);
+  if(!x){ toast("Session not found"); return; }
+  const m=document.createElement("div"); m.className="modalbg";
+  m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>Edit session</h2><button class="close">×</button></div>'+
+    '<div class="mapping">'+
+    '<div class="field"><label>Date</label><input class="input" id="eDate" type="date" value="'+esc(x.date||iso(today()))+'"></div>'+
+    '<div class="field"><label>Time</label><input class="input" id="eTime" type="time" value="'+esc((x.time||"12:00").slice(0,5))+'"></div>'+
+    '<div class="field"><label>Subject</label><select class="select" id="eSub">'+state.subjects.map(s=>'<option value="'+s.id+'" '+(s.id===x.subject?"selected":"")+'>'+s.code+'</option>').join("")+'</select></div>'+
+    '<div class="field"><label>Type</label><select class="select" id="eType">'+["Study","Lecture","Questions","Revision","Notes","Pomodoro","Timer"].map(t=>'<option '+(t===(x.type||"Study")?"selected":"")+'>'+t+'</option>').join("")+'</select></div>'+
+    '<div class="field"><label>Hours</label><input class="input" id="eHrs" type="number" min="0.01" step="0.05" value="'+Number(x.hours||0)+'"></div>'+
+    '<div class="field fullfield"><label>Topic / notes</label><input class="input" id="eTitle" value="'+esc(x.title||"")+'"></div>'+
+    '</div><div class="actions"><button class="ghost" id="eDel">Delete</button><button class="ghost" id="eCancel">Cancel</button><button class="primary" id="eSave">Save</button></div></div>';
+  document.getElementById("modal").appendChild(m);
+  m.querySelector(".close").onclick=m.querySelector("#eCancel").onclick=()=>m.remove();
+  m.querySelector("#eDel").onclick=()=>{ m.remove(); deleteLog(id); };
+  m.querySelector("#eSave").onclick=()=>{
+    const hrs=Number(m.querySelector("#eHrs").value||0);
+    if(hrs<=0){ toast("Hours must be > 0"); return; }
+    x.date=m.querySelector("#eDate").value||x.date;
+    x.time=m.querySelector("#eTime").value||x.time;
+    x.subject=m.querySelector("#eSub").value;
+    x.type=m.querySelector("#eType").value;
+    x.hours=Math.round(hrs*100)/100;
+    x.title=m.querySelector("#eTitle").value.trim()||x.title;
+    save(); m.remove(); render(); toast("Session updated");
+  };
+}
+
 function openLog(){
   const m=document.createElement("div");m.className="modalbg";
-  m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>Log study</h2><button class="close">×</button></div><div class="mapping"><div class="field"><label>Date</label><input id="ld" type="date" class="input" value="'+iso(today())+'"></div><div class="field"><label>Subject</label><select id="lsu" class="select">'+state.subjects.map(s=>'<option value="'+s.id+'">'+s.code+'</option>').join("")+'</select></div><div class="field"><label>Type</label><select id="lty" class="select"><option>Study</option><option>Lecture</option><option>Questions</option><option>Revision</option><option>Notes</option></select></div><div class="field"><label>Hours</label><input id="lho" type="number" step=".25" min=".25" class="input" value="1"></div><div class="field fullfield"><label>Topic</label><input id="lto" class="input" placeholder="What did you study?"></div></div><div class="actions"><button class="ghost" id="c">Cancel</button><button class="primary" id="s">Log</button></div></div>';
+  m.innerHTML='<div class="modalbox"><div class="modalhead"><h2>Log study</h2><button class="close">×</button></div><div class="mapping"><div class="field"><label>Date</label><input id="ld" type="date" class="input" value="'+iso(today())+'"></div><div class="field"><label>Subject</label><select id="lsu" class="select">'+state.subjects.map(s=>'<option value="'+s.id+'">'+s.code+'</option>').join("")+'</select></div><div class="field"><label>Type</label><select id="lty" class="select"><option>Study</option><option>Lecture</option><option>Questions</option><option>Revision</option><option>Notes</option><option>Pomodoro</option></select></div><div class="field"><label>Hours</label><input id="lho" type="number" step=".25" min=".25" class="input" value="1"></div><div class="field fullfield"><label>Topic</label><input id="lto" class="input" placeholder="What did you study?"></div></div><div class="actions"><button class="ghost" id="c">Cancel</button><button class="primary" id="s">Log</button></div></div>';
   document.getElementById("modal").appendChild(m);
   m.querySelector(".close").onclick=()=>m.remove();
   m.querySelector("#c").onclick=()=>m.remove();
@@ -102,6 +131,14 @@ function openLog(){
   };
 }
 
+function ensureLogIds(){
+  let changed=false;
+  state.studyLog.forEach((x,i)=>{
+    if(!x.id){ x.id="log-legacy-"+i+"-"+Date.now(); changed=true; }
+  });
+  if(changed) save();
+}
+
 function bind(){
   document.querySelectorAll(".nav").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
   const q=document.getElementById("quick"); if(q) q.onclick=()=>quickAdd();
@@ -110,9 +147,9 @@ function bind(){
 function render(){
   const title=document.getElementById("title"), content=document.getElementById("content");
   if(!title||!content) return;
-  title.textContent={dashboard:"Dashboard",study:"Study",subjects:"Subjects",revisions:"Revisions",hours:"Study Hours",resources:"Resources",planner:"Planner",settings:"Settings"}[view]||"Dashboard";
+  title.textContent={dashboard:"Dashboard",study:"Study",subjects:"Subjects",revisions:"Revisions",hours:"Study Hours",timer:"Timers",resources:"Resources",planner:"Planner",settings:"Settings"}[view]||"Dashboard";
   try{
-    ({dashboard,study,subjects,revisions,hours,resources,planner,settings}[view]||dashboard)();
+    ({dashboard,study,subjects,revisions,hours,timer:typeof timerView!=="undefined"?timerView:dashboard,resources,planner,settings}[view]||dashboard)();
   }catch(e){
     console.error(e);
     content.innerHTML='<div class="card pad"><h2>Something went wrong</h2><p class="muted">'+esc(e.message)+'</p></div>';
@@ -129,10 +166,13 @@ window.exportData=exportData;
 window.openLog=openLog;
 window.saveHoursForm=saveHoursForm;
 window.deleteLog=deleteLog;
+window.editLog=editLog;
 window.showDayDetail=showDayDetail;
 window.setView=setView;
 window.quickAdd=quickAdd;
 window.saveTargets=saveTargets;
 window.editItemByTitle=editItemByTitle;
+if(typeof timerView!=="undefined") window.timerView=timerView;
+ensureLogIds();
 bind();
 render();
